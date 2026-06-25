@@ -1,157 +1,248 @@
 # Zellij Habitat Orchestrator Plugin
 
+**A Zellij WASM dashboard and command surface for the Habitat orchestrator: field
+state, fleet health, campaign attention, fiber cockpit, sphere warden, and
+durable orchestrator-kernel admission in one terminal-native plugin.**
+
 Release name: `zellij-habitat-orchestrator-plugin`
 
 Version: `0.1.2`
 
-Modular, hot-reloadable Zellij WASM plugin for the ULTRAPLATE Habitat. Terminal-native interface to coherence, emergence, fleet state, and governance across 11 services.
+Repositories:
 
-> **Status (2026-04-24):** S110 P0-P2 + P3 foundations shipped. 183 tests across 3 host-target crates (habitat-core 72 · habitat-modules 91 · habitat-bridge-client 20). 51 pre-existing pedantic debts cleared. WASM release build clean in 7.08s. Added: `LiveDataCheck` trait + 13 `has_live_data()` impls, `stale_tag()` render helper, `ConfigWarning` enum with URL parse + poll-clamp validation, Tier-1 hand-crafted JSON fixtures at `crates/habitat-core/tests/fixtures/`, Tier-2 `scripts/capture-fixtures.sh` capturing 15 live endpoints.
->
-> **Plan:** see `~/projects/shared-context/Comms Layer Unification Plan — 2026-04-24.md` · Obsidian: [[Comms Layer Unification Plan v3]] · [[Comms Layer Unification — Architectural Schematics]] · WS-6 habitat-wire (consumer of the new `/bus/ws`) deferred to S120+.
+- GitHub: <https://github.com/Louranicas/zellij-habitat-orchestrator-plugin>
+- GitLab: <https://gitlab.com/lukeomahoney/zellij-habitat-orchestrator-plugin>
 
-## Architecture
+This documentation follows the Deep-Diff-Forge pattern: state the invariant,
+show the user path early, keep the machine-verifiable gates close to the top, and
+split deep operational material into linked docs. See the exemplar at
+<https://github.com/Louranicas/deep-diff-forge>.
 
-```
-habitat-zellij/
-├── Cargo.toml                        # workspace root
-├── crates/
-│   ├── habitat-core/                 # trait, events, render, config, 23 serde structs
-│   ├── habitat-modules/              # 7 built-in modules
-│   ├── habitat-bridge-client/        # async HTTP via run_command + context tags
-│   └── habitat-plugin/               # WASM cdylib entrypoint
-├── layouts/
-│   ├── habitat-fleet.kdl             # full 7-module view
-│   ├── habitat-compact.kdl           # 3-module slim view
-│   └── habitat-minimal.kdl           # just coherence_gauge footer
-└── build.sh                          # build + deploy + hot-reload
-```
+---
 
-## Built-in Modules
+## Table Of Contents
 
-| Module | Endpoints | Interval | Purpose |
-|--------|-----------|----------|---------|
-| `fleet_view` | ORAC `/health`, PV2 `/health` | 5s | RALPH cycle, field r, thermal, STDP contextual |
-| `coherence_gauge` | PV2 `/field`, ORAC `/coupling`, ORAC `/hebbian` | 2s | ASCII bar for r, aggregated coupling (S6) |
-| `bridge_health` | ORAC `/bridges`, ORAC `/thermal`, Nerve `/health`, 11 service probes | 5s + 30s | Thermal context band (S11), breaker state, service grid |
-| `event_feed` | ORAC `/field` (emergence.recent), PV2 `/bus/events` | 5s + 10s | Scrollable log with confidence coloring (S4), TTL filter (S5) |
-| `na_panel` | PV2 `/field/proposals` | 10s | Sovereignty · consent · governance |
-| `session_timer` | ORAC `/session-stats`, ORAC `/tokens` | 10s | Uptime, tools, token budget |
-| `cmd_pipe` | (internal — receives PipeMessage) | event-driven | Bidirectional command handler with rate limit (S9) |
+- [Why This Plugin Exists](#why-this-plugin-exists)
+- [First Principle](#first-principle)
+- [What Ships In v0.1.2](#what-ships-in-v012)
+- [Install And Build](#install-and-build)
+- [Quick Start](#quick-start)
+- [Command Surface](#command-surface)
+- [Architecture](#architecture)
+- [Quality And Security Gates](#quality-and-security-gates)
+- [Documentation Map](#documentation-map)
+- [Release Status](#release-status)
+- [License](#license)
 
-## NA-Compliant Design
+---
 
-This plugin is a participant in the system it observes, not a spectator. Architectural choices:
+## Why This Plugin Exists
 
-- **S1 Observation budget:** ~18 curls per 10s cycle (~50 KB bandwidth), staggered on cold start
-- **S4 Confidence indicators:** Every emergence event displayed with confidence percentage, color-coded green/yellow/red
-- **S6 Coupling aggregation:** Raw weights hidden by default (press `c` to toggle debug detail). Aggregate-only display protects the learning substrate from human optimization pressure
-- **S7 RALPH cycle:** Phase shown as rotating indicator `R·A·L·P·H` with current phase highlighted, never as a progress bar
-- **S8 Quiet connect:** First tick polls endpoints one-per-tick over 30s instead of 11-parallel curl burst
-- **S9 Rate limiting:** `cmd_pipe` enforces 60s cooldown on `snapshot` command
-- **S11 Thermal context:** Temperature shown as band (NORMAL/COOL/HOT/CRITICAL) with color, never raw number alone
-- **S12 STDP context:** LTP/LTD hidden at 0 spheres ("idle"), hinted at 1 ("warming up"), ratios shown at 2+
+Habitat has many live surfaces: ORAC, PV2, service bridges, campaign/fiber state,
+governance proposals, and the v0.1.2 orchestrator-kernel sidecar. A terminal
+operator needs to inspect that field without turning observation into accidental
+actuation.
 
-## Build
+`zellij-habitat-orchestrator-plugin` keeps those concerns together but separated:
+
+| Surface | Role |
+| --- | --- |
+| Zellij WASM plugin | Read and render live state inside a pane. |
+| `habitat-core` | Shared event, config, render, and response contracts. |
+| `habitat-modules` | Built-in dashboard modules with isolated state and tests. |
+| `habitat-bridge-client` | Tagged `run_command` transport and snapshot fan-out. |
+| `orchestrator-kernel-sidecar` | Durable admission, hash-chain replay, policy-bound warrant checks. |
+| Scripts and layouts | Operator runbooks, proof harnesses, and Zellij layouts. |
+
+The result is a plugin that is usable as a dashboard, testable as normal Rust,
+and governed enough to participate in a production-oriented orchestrator without
+claiming more authority than it has.
+
+## First Principle
+
+> **Observation must be cheap, attributed, and reversible; durable action must
+> cross the sidecar boundary and return proof.**
+
+The plugin may render, poll, serialize pane state, and forward pipe messages. It
+does not invent durability. `ACK_DURABLE` belongs to the sidecar submit path only,
+after event append, hash-chain update, idempotency resolution, and policy-bound
+warrant checks.
+
+This invariant is carried through:
+
+- `cmd_pipe` remains rate-limited and operator-visible.
+- Kernel pipe handling fails closed for invalid schema.
+- Durable task admission is owned by `orchestrator-kernel-sidecar`.
+- Built-in recipes are fixed allowlist/no-shell paths.
+- Rollback and promotion scripts default to dry-run.
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the boundary details.
+
+## What Ships In v0.1.2
+
+| Area | Included |
+| --- | --- |
+| Dashboard modules | `fleet_view`, `coherence_gauge`, `bridge_health`, `event_feed`, `na_panel`, `session_timer`, `cmd_pipe`, `campaign_attention`, `fiber_cockpit`, `sphere_warden`, `orchestrator_kernel`. |
+| Zellij layouts | Full fleet, compact, minimal, and factory witness layouts. |
+| Sidecar | `orch-kernelctl`, `orch-kerneld`, durable event log, replay, verify-chain, idempotency, policy hash checks. |
+| Proof scripts | Live pipe proof, zero-touch verifier, deep trace, monitor, fitness, score, soak, rollback, deploy dry-runs. |
+| Test coverage | 365 Rust tests in the standalone export at release time. |
+| Release tag | `v0.1.2` on GitHub and GitLab. |
+
+## Install And Build
+
+Requires Rust with `wasm32-wasip1` target support and Zellij `0.43.x` plugin API
+compatibility.
 
 ```bash
+git clone https://github.com/Louranicas/zellij-habitat-orchestrator-plugin.git
+cd zellij-habitat-orchestrator-plugin
+
+cargo check --workspace
+cargo test --workspace
+
+# Build and install the WASM plugin to ~/.config/zellij/plugins/habitat-plugin.wasm
 bash build.sh
 ```
 
-Output: `~/.config/zellij/plugins/habitat-plugin.wasm` (~1.2 MB, wasm32-wasip1, opt-level=s + lto + strip).
+The build script compiles `crates/habitat-plugin` for `wasm32-wasip1`, writes the
+plugin artifact to `~/.config/zellij/plugins/habitat-plugin.wasm`, and asks
+Zellij to reload it when a session is available.
 
-Automatic hot-reload in active Zellij session.
+## Quick Start
 
-## Launch
+Launch a full dashboard tab:
 
 ```bash
-zellij --layout ~/claude-code-workspace/habitat-zellij/layouts/habitat-fleet.kdl
+zellij --layout ./layouts/habitat-fleet.kdl
 ```
 
-## Pipe Commands
+Use the compact or minimal layouts for a smaller pane footprint:
 
 ```bash
-# Trigger context snapshot (rate limited to 1/min)
+zellij --layout ./layouts/habitat-compact.kdl
+zellij --layout ./layouts/habitat-minimal.kdl
+```
+
+Run a read-only release proof bundle:
+
+```bash
+scripts/orch-kernel-v012-zero-touch-verify.sh
+```
+
+Run sidecar-focused tests:
+
+```bash
+cargo test -p orchestrator-kernel-sidecar
+cargo test --lib -p habitat-modules -p orchestrator-kernel-sidecar
+```
+
+## Command Surface
+
+Zellij pipe examples:
+
+```bash
+# Context snapshot, rate-limited by cmd_pipe
 zellij pipe -p "file:$HOME/.config/zellij/plugins/habitat-plugin.wasm" -n snapshot
 
-# Query sphere detail
+# Sphere detail query
 zellij pipe -p "file:$HOME/.config/zellij/plugins/habitat-plugin.wasm" -n query -- "sphere-alpha"
 
 # Status dump
 zellij pipe -p "file:$HOME/.config/zellij/plugins/habitat-plugin.wasm" -n status
 ```
 
-## Keybinds (when plugin pane focused)
-
-| Key | Action |
-|-----|--------|
-| `r` | Manual refresh all data sources |
-| `c` | Toggle coupling matrix detail (coherence_gauge) |
-| `j` / `k` | Scroll event_feed down / up |
-| `g` | Jump to top of event_feed |
-| `q` / `Esc` | Close plugin, snapshot state |
-
-## Hot-Reload
+Sidecar submit smoke test:
 
 ```bash
-# Edit any module, then:
-bash build.sh
+ORCH_KERNEL_STATE_DIR="$(mktemp -d)" \
+  cargo run -q -p orchestrator-kernel-sidecar --bin orch-kernelctl -- \
+  submit --json '{"schema":"habitat.kernel.submit.request.v1","trace_id":"manual-smoke","idempotency_key":"manual-smoke-1","kind":"TASK","operator":"manual","payload":{"goal":"smoke"}}'
 ```
 
-The build script calls `zellij action start-or-reload-plugin` automatically.
+Expected sidecar response:
 
-Module state persists across reload via `serialize_state()` / `restore_state()`.
+- `verdict` is `ACK_DURABLE`.
+- `event_id` is present.
+- `event_hash` starts with `sha256:`.
+- `integration_state` is `INGESTED` or stronger.
 
-## Configuration (via KDL)
+## Architecture
 
-All values can be overridden per-layout:
-
-```kdl
-plugin location="file:~/.config/zellij/plugins/habitat-plugin.wasm" {
-    modules "fleet_view,coherence_gauge,bridge_health,event_feed,na_panel,session_timer,cmd_pipe"
-    orac_url "http://127.0.0.1:8133"
-    pv2_url "http://127.0.0.1:8132"
-    synthex_url "http://127.0.0.1:8090"
-    nerve_url "http://127.0.0.1:8083"
-    coherence_poll "2.0"
-    health_poll "5.0"
-    governance_poll "10.0"
-    layout_mode "full"          # or "compact" or "minimal"
-    show_consent_states "true"
-    show_attribution "true"
-}
+```text
+zellij-habitat-orchestrator-plugin/
+├── Cargo.toml
+├── crates/
+│   ├── habitat-core/                 # contracts, config, render helpers
+│   ├── habitat-bridge-client/        # run_command bridge and snapshot fan-out
+│   ├── habitat-modules/              # dashboard modules
+│   ├── habitat-plugin/               # WASM entrypoint and pipe handling
+│   └── orchestrator-kernel-sidecar/   # durable admission and replay
+├── layouts/                          # Zellij launch layouts
+├── scripts/                          # proof, deploy, rollback, monitor harnesses
+├── docs/                             # architecture, operations, security, release docs
+└── TESTING.md                        # local testing runbook
 ```
 
-## Dependencies
+The detailed map is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-- `zellij-tile = "0.43.1"`
-- `serde` / `serde_json`
-- Target: `wasm32-wasip1` (rustc 1.78+)
+## Quality And Security Gates
 
-## Traps Avoided
+Release-local gates used for the standalone v0.1.2 repository:
 
-1. `run_command()` context tags route async responses back to correct module
-2. `set_timeout()` called at END of timer handler to prevent race
-3. Bridge URLs are stored internally without a URL scheme prefix; examples include the scheme only for readability
-4. PV2 IPC bus handled via separate habitat-telegram binary, not WASM (WASM has no Unix socket)
-5. SyntheX v1 health is `/api/health`, not `/health`
-6. ME V2 is `:8180`, not `:8080`
-7. Pswarm V2 is `:10002`, not `:10001`
-8. POVM endpoint is `/pathways` (plural), not `/pathway`
-9. PV2 `/field` uses capital `K`, ORAC `/field` uses lowercase `k`
-10. Nerve `/health` returns plain text "ok", not JSON
+```bash
+cargo fmt --all --check
+cargo check --workspace
+cargo test --workspace
+cargo audit
+cargo deny check
+```
 
-## Bidirectional anchors
+`cargo audit` and `cargo deny check` currently exit successfully. They report
+inherited warnings from the Zellij dependency chain and broad allowlist policy;
+these are documented in [docs/SECURITY.md](docs/SECURITY.md).
 
-- **Plan hub (Obsidian):** [[Comms Layer Unification Plan v3]]
-- **Architecture (Obsidian):** [[Comms Layer Unification — Architectural Schematics]] — 9 Mermaid diagrams
-- **Canonical plan:** `~/projects/shared-context/Comms Layer Unification Plan — 2026-04-24.md`
-- **Charter:** `~/projects/shared-context/Coding Excellence Charter — 2026-04-24.md`
-- **Session state:** `CLAUDE.local.md` (plan status table P0–P6)
-- **P0+P1 audit:** `ai_docs/P0_P1_AUDIT_2026-04-22.md`
-- **Sibling plugins:**
-  - `~/claude-code-workspace/habitat-obsidian/README.md` (Obsidian-side plugin, WS-5 retargeted)
-  - `~/claude-code-workspace/pane-vortex/README.md` (bus daemon producing events consumed by this plugin via future habitat-wire WS-6)
-- **Bus reference schemas:** `~/claude-code-workspace/pane-vortex/schemas/bus-events/INDEX.md`
-- **E2E verification:** `~/claude-code-workspace/pane-vortex/scripts/verify-comms-unification-e2e.sh`
-- **POVM brief:** memory `be0697a0-b3a8-4c6c-909f-1ad2f9c528eb` at POVM :8125 · pathways under `habitat_comms_unification_*`
+Deep operational verification:
+
+```bash
+scripts/orch-kernel-v012-live-pipe-proof.sh
+scripts/orch-kernel-v012-zero-touch-verify.sh
+scripts/orch-kernel-soak-selftest.sh
+scripts/orch-kernel-rollback.sh --dry-run
+```
+
+See [docs/TESTING.md](docs/TESTING.md) and [TESTING.md](TESTING.md).
+
+## Documentation Map
+
+| Document | Purpose |
+| --- | --- |
+| [docs/INDEX.md](docs/INDEX.md) | Documentation hub and bidirectional link index. |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module, sidecar, transport, and data-flow architecture. |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Build, launch, pipe, deploy, rollback, and proof workflows. |
+| [docs/TESTING.md](docs/TESTING.md) | Gate matrix and expected verification outputs. |
+| [docs/SECURITY.md](docs/SECURITY.md) | Admission boundary, policy gates, supply-chain notes. |
+| [docs/RELEASE.md](docs/RELEASE.md) | v0.1.2 release identity, remotes, tag, and publish checklist. |
+| [PLAN.md](PLAN.md) | Historical plan of record retained for context. |
+| [TESTING.md](TESTING.md) | Original local orchestrator-kernel testing runbook. |
+| [NOTES.md](NOTES.md) | Durable lessons and active reminders. |
+
+Every file in `docs/` links back to this README and to [docs/INDEX.md](docs/INDEX.md).
+
+## Release Status
+
+Current release:
+
+- Commit: `2a32442d51d20f262b58f993bd2c1cddd2acdcf1`
+- Tag: `v0.1.2`
+- GitHub: <https://github.com/Louranicas/zellij-habitat-orchestrator-plugin>
+- GitLab: <https://gitlab.com/lukeomahoney/zellij-habitat-orchestrator-plugin>
+
+The repo is release-ready as a source distribution. Production arming,
+promotion, service restart, rollback execution, and long-running soak remain
+operator-gated workflows, not implicit side effects of cloning or building this
+repository.
+
+## License
+
+Workspace package license: `MIT OR Apache-2.0`.
