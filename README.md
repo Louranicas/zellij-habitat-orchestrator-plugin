@@ -31,6 +31,7 @@ split deep operational material into linked docs. See the exemplar at
 - [Architecture](#architecture)
 - [Quality And Security Gates](#quality-and-security-gates)
 - [Documentation Map](#documentation-map)
+- [Task Status](#task-status)
 - [Release Status](#release-status)
 - [License](#license)
 
@@ -223,11 +224,19 @@ See [docs/TESTING.md](docs/TESTING.md) and [TESTING.md](TESTING.md).
 | [docs/TESTING.md](docs/TESTING.md) | Gate matrix and expected verification outputs. |
 | [docs/SECURITY.md](docs/SECURITY.md) | Admission boundary, policy gates, supply-chain notes. |
 | [docs/RELEASE.md](docs/RELEASE.md) | v0.1.2 release identity, remotes, tag, and publish checklist. |
+| [docs/TASK_STATUS.md](docs/TASK_STATUS.md) | Plan reconciliation, completed work, and remaining gated tasks. |
 | [PLAN.md](PLAN.md) | Historical plan of record retained for context. |
 | [TESTING.md](TESTING.md) | Original local orchestrator-kernel testing runbook. |
 | [NOTES.md](NOTES.md) | Durable lessons and active reminders. |
 
 Every file in `docs/` links back to this README and to [docs/INDEX.md](docs/INDEX.md).
+
+## Task Status
+
+The current task ledger is [docs/TASK_STATUS.md](docs/TASK_STATUS.md). It marks
+the standalone v0.1.2 source release, documentation, link map, and Rust gates as
+complete, and separates the remaining operator-gated production items from
+repository work.
 
 ## Release Status
 

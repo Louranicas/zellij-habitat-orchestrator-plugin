@@ -16,6 +16,7 @@ testing, security, and release material.
 | [Testing](TESTING.md) | You need the gate matrix and expected pass signals. |
 | [Security](SECURITY.md) | You need the admission boundary, policy model, or supply-chain notes. |
 | [Release](RELEASE.md) | You need the v0.1.2 release identity, remotes, and publish checklist. |
+| [Task Status](TASK_STATUS.md) | You need the reconciled task list and remaining operator-gated work. |
 
 ## Bidirectional Links
 
@@ -23,5 +24,6 @@ testing, security, and release material.
 - Historical plan: [PLAN.md](../PLAN.md)
 - Local test runbook: [TESTING.md](../TESTING.md)
 - Durable notes: [NOTES.md](../NOTES.md)
+- Current task ledger: [Task Status](TASK_STATUS.md)
 
 Each document in this directory links back here and back to the README.

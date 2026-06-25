@@ -47,4 +47,5 @@ git push gitlab main v0.1.2
 
 Do not treat publishing as deployment. Deployment, rollback execution, and
 production soak remain separate operator-gated workflows. See
-[Operations](OPERATIONS.md) and [Security](SECURITY.md).
+[Operations](OPERATIONS.md), [Security](SECURITY.md), and
+[Task Status](TASK_STATUS.md).
