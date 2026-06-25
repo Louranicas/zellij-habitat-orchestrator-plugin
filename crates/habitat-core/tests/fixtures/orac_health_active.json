@@ -1,0 +1,25 @@
+{
+    "status": "healthy",
+    "ralph_gen": 35235,
+    "ralph_phase": "Harvest",
+    "ralph_fitness": 0.779,
+    "ralph_converged": true,
+    "field_r": 0.95,
+    "sphere_count": 12,
+    "hebbian_ltp_total": 574238,
+    "hebbian_ltd_total": 13135572,
+    "emergence_events": 12329,
+    "coupling_connections": 39800,
+    "me_fitness": 0.585,
+    "synthex_stale": false,
+    "rm_stale": false,
+    "learning_active": true,
+    "breakers": {
+        "me": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 1048},
+        "pv2": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 12987},
+        "povm": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 251},
+        "rm": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 80},
+        "synthex": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 6829},
+        "vms": {"state": "Closed", "consecutive_failures": 0, "failures": 0, "successes": 813}
+    }
+}

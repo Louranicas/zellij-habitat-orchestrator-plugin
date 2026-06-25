@@ -1,0 +1,19 @@
+[package]
+name = "habitat-plugin"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Zellij WASM entrypoint for the Habitat dashboard plugin"
+
+[[bin]]
+name = "habitat_plugin"
+path = "src/main.rs"
+test = false
+
+[dependencies]
+habitat-core = { path = "../habitat-core", version = "0.1.2" }
+habitat-modules = { path = "../habitat-modules", version = "0.1.2" }
+habitat-bridge-client = { path = "../habitat-bridge-client", version = "0.1.2" }
+zellij-tile = "0.43.1"
+serde.workspace = true
+serde_json.workspace = true

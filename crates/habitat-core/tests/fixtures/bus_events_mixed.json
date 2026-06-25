@@ -1,0 +1,7 @@
+{
+    "events": [
+        {"event_type": "sphere.joined", "tick": 42, "timestamp": 1.0, "data": {"sphere_id": "alpha"}},
+        {"event_type": "field.chimera", "tick": 43, "timestamp": 2.0, "data": [1, 2, 3]},
+        {"event_type": "emergence.detected", "tick": 100, "timestamp": 5.7, "data": {"type": "chimera", "confidence": 0.92}}
+    ]
+}

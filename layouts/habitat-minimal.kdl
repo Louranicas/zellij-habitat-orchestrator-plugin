@@ -1,0 +1,16 @@
+layout {
+    tab name="Habitat-Min" focus=true {
+        pane split_direction="horizontal" {
+            pane size="4" {
+                plugin location="file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm" {
+                    modules "coherence_gauge"
+                    pv2_url "http://127.0.0.1:8132"
+                    orac_url "http://127.0.0.1:8133"
+                    coherence_poll "2.0"
+                    layout_mode "minimal"
+                }
+            }
+            pane name="Terminal" {}
+        }
+    }
+}

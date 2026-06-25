@@ -1,0 +1,22 @@
+layout {
+    tab name="Habitat" focus=true {
+        pane split_direction="vertical" {
+            pane size="50%" {
+                plugin location="file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm" {
+                    modules "fleet_view,coherence_gauge,bridge_health,event_feed,na_panel,session_timer,cmd_pipe"
+                    orac_url "http://127.0.0.1:8133"
+                    pv2_url "http://127.0.0.1:8132"
+                    synthex_url "http://127.0.0.1:8090"
+                    nerve_url "http://127.0.0.1:8083"
+                    coherence_poll "2.0"
+                    health_poll "5.0"
+                    governance_poll "10.0"
+                    layout_mode "full"
+                    show_consent_states "true"
+                    show_attribution "true"
+                }
+            }
+            pane size="50%" name="Terminal" {}
+        }
+    }
+}

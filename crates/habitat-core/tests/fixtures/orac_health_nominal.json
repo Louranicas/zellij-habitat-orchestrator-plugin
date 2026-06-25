@@ -1,0 +1,15 @@
+{
+    "status": "healthy",
+    "ralph_gen": 26068,
+    "ralph_phase": "Recognize",
+    "ralph_fitness": 0.664,
+    "ralph_converged": false,
+    "field_r": 0.0,
+    "sphere_count": 0,
+    "hebbian_ltp_total": 38,
+    "hebbian_ltd_total": 34,
+    "emergence_events": 3449,
+    "breakers": {
+        "orac_pv2_bridge": {"state": "Closed", "consecutive_failures": 0, "successes": 900}
+    }
+}

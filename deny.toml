@@ -1,0 +1,50 @@
+[graph]
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "wasm32-wasip1" },
+]
+all-features = false
+no-default-features = false
+
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2025-0052", reason = "Transitive through zellij-tile 0.43.1/zellij-utils; no direct safe upgrade in this plugin workspace yet." },
+    { id = "RUSTSEC-2024-0375", reason = "Transitive through zellij-tile 0.43.1 clap 3.x stack; tracked as upstream Zellij dependency risk." },
+    { id = "RUSTSEC-2024-0370", reason = "Transitive through zellij-tile 0.43.1 clap derive stack; tracked as upstream Zellij dependency risk." },
+]
+
+[licenses]
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Unlicense",
+    "WTFPL",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

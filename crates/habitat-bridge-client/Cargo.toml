@@ -1,0 +1,11 @@
+[package]
+name = "habitat-bridge-client"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Async HTTP client via run_command + context-tagged responses for Habitat services"
+
+[dependencies]
+habitat-core = { path = "../habitat-core", version = "0.1.2" }
+serde.workspace = true
+serde_json.workspace = true

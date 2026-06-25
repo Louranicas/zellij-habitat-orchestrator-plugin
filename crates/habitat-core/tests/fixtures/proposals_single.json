@@ -1,0 +1,15 @@
+{
+    "proposals": [
+        {
+            "id": "p1",
+            "parameter": "thermal_target",
+            "proposed_value": 0.6,
+            "current_value": 0.5,
+            "proposer": "watcher",
+            "reason": "cool drift",
+            "status": "pending",
+            "submitted_at_tick": 1000,
+            "votes": 3
+        }
+    ]
+}
