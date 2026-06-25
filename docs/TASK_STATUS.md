@@ -59,10 +59,10 @@ the boundary from source distribution into live production state.
 
 | Task | Status | Evidence | Required next condition |
 | --- | --- | --- | --- |
-| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260625T231656360605Z.json` reports `blocked`; production status is degraded. | `factory-status --mode production` must be green. |
-| Kernel production arm grant | Blocked | Default kernel readiness receipt `receipts/production-readiness/factory-production-readiness-20260625T231656172181Z.json` reports missing real kernel production arm grant. | Operator supplies a valid production grant for `zellij-orchestrator-kernel-v012`. |
-| Promotion | Blocked | Production status remains degraded because Tailwright is `DARK` and blocks novelty promotion. | Resolve Tailwright probe/dissent and rerun production readiness. |
-| Rollback execution | Blocked by design | Dry-run rollback verifier is available; execution is explicitly operator-gated. | Explicit rollback approval and matching rollback target. |
+| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260625T234455676979Z.json` reports `blocked`; `factory-status --mode production` reports Tailwright `DARK`. | `factory-status --mode production` must be green. |
+| Kernel production arm grant | Blocked | Latest readiness receipt reports `no production arm grant supplied` for `zellij-orchestrator-kernel-v012`. | Operator supplies a valid scoped production grant for `zellij-orchestrator-kernel-v012`. |
+| Promotion | Blocked | Production status reason is `Tailwright DARK blocks novelty_promotion`. | Resolve Tailwright probe/dissent and rerun production readiness. |
+| Rollback execution | Blocked by design | Latest dry-run receipt `receipts/rollback-drill/factory-rollback-drill-20260625T234502039802Z.json` reports `dry_run_ready`; execution is explicitly operator-gated. | Explicit rollback approval and matching rollback target. |
 | Service restart, binary restore, lease claim, production soak | Blocked by design | [Security](SECURITY.md) states these are not side effects of clone/build/test. | Explicit operator approval and fresh production readiness proof. |
 
 ## Current Recommendation
