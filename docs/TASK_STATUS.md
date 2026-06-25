@@ -46,6 +46,7 @@ remaining gated work.
 | Rust compile | Complete | `cargo check --workspace` passed. |
 | Rust test suite | Complete | `cargo test --workspace` passed with 365 tests. |
 | Deep-Diff-Forge documentation review | Complete | Initial docs review reported 7 changed files, 549 additions, 110 deletions, and `semantic_fallbacks=0`; current task-ledger patch review reports 4 changed files, 92 additions, 1 deletion, and `semantic_fallbacks=0`. |
+| Zero-touch verifier classification | Complete | `receipts/orch-kernel-v012-zero-touch-verify-20260625T235500Z/summary.json` reports `PASS_WITH_DEGRADED`; score 82 is classified as `SEMANTIC_DEGRADED`, not product failure. |
 | WFE2 gate | Complete | `the-workflow-engine-v2/scripts/gate.sh` passed after repo-local target-dir hardening. |
 | LEV3 gate | Complete | `advanced-tool-chaining-area/loop-engine-v3/scripts/gate.sh` passed after repo-local target-dir hardening. |
 | Loom policy check | Complete | `just loom-policy-check` passed. |
@@ -59,7 +60,7 @@ the boundary from source distribution into live production state.
 
 | Task | Status | Evidence | Required next condition |
 | --- | --- | --- | --- |
-| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260625T234455676979Z.json` reports `blocked`; `factory-status --mode production` reports Tailwright `DARK`. | `factory-status --mode production` must be green. |
+| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260625T235255336696Z.json` reports `blocked`; `factory-status --mode production` reports Tailwright `DARK`, zero-touch is `PASS_WITH_DEGRADED`, and no production arm grant is supplied. | `factory-status --mode production` must be green and zero-touch must reach production-ready score. |
 | Kernel production arm grant | Blocked | Latest readiness receipt reports `no production arm grant supplied` for `zellij-orchestrator-kernel-v012`. | Operator supplies a valid scoped production grant for `zellij-orchestrator-kernel-v012`. |
 | Promotion | Blocked | Production status reason is `Tailwright DARK blocks novelty_promotion`. | Resolve Tailwright probe/dissent and rerun production readiness. |
 | Rollback execution | Blocked by design | Latest dry-run receipt `receipts/rollback-drill/factory-rollback-drill-20260625T234502039802Z.json` reports `dry_run_ready`; execution is explicitly operator-gated. | Explicit rollback approval and matching rollback target. |

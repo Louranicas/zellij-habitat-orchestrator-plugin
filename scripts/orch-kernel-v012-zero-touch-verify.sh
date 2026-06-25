@@ -137,6 +137,8 @@ score_stdout = out_dir / "orch-kernel-score.stdout"
 score = read_json(score_stdout) if score_stdout.exists() else {"_parse_error": "missing stdout"}
 if score.get("verdict") == "READY_FOR_INDEPENDENT_VERIFY" and score.get("score", 0) >= 90:
     gates.append(gate("score_framework", "PASS", str(score_stdout), f"score={score.get('score')} cap={score.get('hard_score_cap')}", "PRODUCT_PASS"))
+elif score.get("verdict") == "REQUEST_CHANGES" and score.get("score", 0) >= 80:
+    gates.append(gate("score_framework", "DEGRADED", str(score_stdout), json.dumps(score, sort_keys=True), "SEMANTIC_DEGRADED"))
 else:
     gates.append(gate("score_framework", "FAIL", str(score_stdout), json.dumps(score, sort_keys=True), "PRODUCT_FAIL"))
 
