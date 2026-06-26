@@ -46,7 +46,7 @@ remaining gated work.
 | Rust compile | Complete | `cargo check --workspace` passed. |
 | Rust test suite | Complete | `cargo test --workspace` passed with 365 tests. |
 | Deep-Diff-Forge documentation review | Complete | Initial docs review reported 7 changed files, 549 additions, 110 deletions, and `semantic_fallbacks=0`; current task-ledger patch review reports 4 changed files, 92 additions, 1 deletion, and `semantic_fallbacks=0`. |
-| Zero-touch verifier classification | Complete | `receipts/orch-kernel-v012-zero-touch-verify-20260625T235500Z/summary.json` reports `PASS_WITH_DEGRADED`; score 82 is classified as `SEMANTIC_DEGRADED`, not product failure. |
+| Zero-touch verifier classification | Complete | Workspace receipt `receipts/orch-kernel-v012-zero-touch-verify-20260626T041848Z/summary.json` reports `PASS_WITH_DEGRADED`; score 82 is classified as `SEMANTIC_DEGRADED`, not product failure. |
 | WFE2 gate | Complete | `the-workflow-engine-v2/scripts/gate.sh` passed after repo-local target-dir hardening. |
 | LEV3 gate | Complete | `advanced-tool-chaining-area/loop-engine-v3/scripts/gate.sh` passed after repo-local target-dir hardening. |
 | Loom policy check | Complete | `just loom-policy-check` passed. |
@@ -60,9 +60,9 @@ the boundary from source distribution into live production state.
 
 | Task | Status | Evidence | Required next condition |
 | --- | --- | --- | --- |
-| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260625T235255336696Z.json` reports `blocked`; `factory-status --mode production` reports Tailwright `DARK`, zero-touch is `PASS_WITH_DEGRADED`, and no production arm grant is supplied. | `factory-status --mode production` must be green and zero-touch must reach production-ready score. |
-| Kernel production arm grant | Blocked | Latest readiness receipt reports `no production arm grant supplied` for `zellij-orchestrator-kernel-v012`. | Operator supplies a valid scoped production grant for `zellij-orchestrator-kernel-v012`. |
-| Promotion | Blocked | Production status reason is `Tailwright DARK blocks novelty_promotion`. | Resolve Tailwright probe/dissent and rerun production readiness. |
+| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260626T041900455240Z.json` reports `blocked` only because zero-touch is not exact `PASS`; production status, security, wiring, substrate, rollback readiness, and production arm grant gates pass. | Zero-touch score cap must be resolved, or the honest block must remain documented. |
+| Kernel production arm grant | Complete read-only | Scoped grant `receipts/production-grants/zellij-orch-kernel-v012-prod-readiness-20260626T041820Z.json` validates in the latest readiness join without arming or mutating runtime state. | Fresh scoped grant required before any future read-only readiness rejoin after expiry. |
+| Promotion | Blocked | Tailwright diagnosis `receipts/tailwright-diagnosis/factory-tailwright-diagnosis-20260626T002958821614Z.json` classifies the DARK as `HONEST_DARK`; novelty promotion remains blocked by policy, not by a production-service outage. | Operator policy decides whether novelty promotion remains blocked; production-service readiness no longer treats this as a service outage. |
 | Rollback execution | Blocked by design | Latest dry-run receipt `receipts/rollback-drill/factory-rollback-drill-20260625T234502039802Z.json` reports `dry_run_ready`; execution is explicitly operator-gated. | Explicit rollback approval and matching rollback target. |
 | Service restart, binary restore, lease claim, production soak | Blocked by design | [Security](SECURITY.md) states these are not side effects of clone/build/test. | Explicit operator approval and fresh production readiness proof. |
 
@@ -71,10 +71,10 @@ the boundary from source distribution into live production state.
 Treat v0.1.2 as source-distribution complete and production-promotion blocked.
 The next highest-leverage work is outside this repo:
 
-1. Resolve Tailwright so `factory-status --mode production` stops reporting a
-   degraded novelty-promotion surface.
-2. Produce a real, scoped production arm grant for
-   `zellij-orchestrator-kernel-v012`.
-3. Re-run the read-only production readiness verifier.
+1. Resolve the zero-touch score cap or preserve the honest blocked state.
+2. Keep Tailwright novelty promotion blocked unless operator policy deliberately
+   waives the `HONEST_DARK` state.
+3. Re-run the read-only production readiness verifier with a fresh scoped grant
+   if the current grant has expired.
 4. Only then decide whether to run an explicit promotion, rollback, restart, or
    production soak.
