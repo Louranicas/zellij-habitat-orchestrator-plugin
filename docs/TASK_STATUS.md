@@ -46,7 +46,8 @@ remaining gated work.
 | Rust compile | Complete | `cargo check --workspace` passed. |
 | Rust test suite | Complete | `cargo test --workspace` passed with 365 tests. |
 | Deep-Diff-Forge documentation review | Complete | Initial docs review reported 7 changed files, 549 additions, 110 deletions, and `semantic_fallbacks=0`; current task-ledger patch review reports 4 changed files, 92 additions, 1 deletion, and `semantic_fallbacks=0`. |
-| Zero-touch verifier classification | Complete | Workspace receipt `receipts/orch-kernel-v012-zero-touch-verify-20260626T045755Z/summary.json` reports `PASS_WITH_DEGRADED`; score 82 is classified as `SEMANTIC_DEGRADED` from `cap_source=state_vector.do_not_claim_above`, not product failure. |
+| Governance cap verifier | Complete | Workspace receipt `receipts/score-cap-verifier/orch-kernel-score-cap-verifier-20260626T051008Z.json` reports `verdict=pass`, `failed_checks=[]`, and authorizes the narrow gate-only cap lift from 82 to 90. |
+| Zero-touch verifier classification | Complete | Workspace receipt `receipts/orch-kernel-v012-zero-touch-verify-20260626T051048Z/summary.json` reports `PASS`; score framework is `score=90 cap=90`. |
 | Pipe terminality | Complete for Mode A | Workspace receipt `receipts/orch-kernel-v012-live-pipe-proof-20260626T045706Z/summary.json` reports `PASS`; valid kernel pipe payloads return terminal `NACK_USE_SIDECAR_SUBMIT` without synchronous sidecar CLI execution inside the Zellij `CliPipe` window. |
 | WFE2 gate | Complete | `the-workflow-engine-v2/scripts/gate.sh` passed after repo-local target-dir hardening. |
 | LEV3 gate | Complete | `advanced-tool-chaining-area/loop-engine-v3/scripts/gate.sh` passed after repo-local target-dir hardening. |
@@ -61,21 +62,23 @@ the boundary from source distribution into live production state.
 
 | Task | Status | Evidence | Required next condition |
 | --- | --- | --- | --- |
-| Production readiness | Blocked | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260626T045820034789Z.json` reports `blocked` only because zero-touch is not exact `PASS`; production status, security, wiring, substrate, rollback readiness, and production arm grant gates pass. | Zero-touch score cap must be resolved, or the honest block must remain documented. |
-| Kernel production arm grant | Complete read-only | Scoped grant `receipts/production-grants/zellij-orch-kernel-v012-prod-readiness-20260626T041820Z.json` validates in the latest readiness join without arming or mutating runtime state. | Fresh scoped grant required before any future read-only readiness rejoin after expiry. |
+| Production readiness | Complete read-only | Workspace receipt `receipts/production-readiness/factory-production-readiness-20260626T082146215211Z.json` reports `ready_for_explicit_approval` with `blockers=[]`; zero-touch verifier, production status, security, wiring, substrate, rollback readiness, and production arm grant pass. | Explicit approval is still required before any mutating production action. |
+| Kernel production arm grant | Complete read-only | Scoped grant `receipts/production-grants/zellij-orch-kernel-v012-prod-readiness-20260626T082108Z.json` validates in the latest readiness join without arming or mutating runtime state. | Refresh the grant if it expires before an action-specific readiness rejoin. |
 | Promotion | Blocked | Tailwright diagnosis `receipts/tailwright-diagnosis/factory-tailwright-diagnosis-20260626T044341240587Z.json` classifies the DARK as `HONEST_DARK`; novelty promotion remains blocked by policy, not by a production-service outage. | Operator policy decides whether novelty promotion remains blocked; production-service readiness no longer treats this as a service outage. |
 | Rollback execution | Blocked by design | Latest dry-run receipt `receipts/rollback-drill/factory-rollback-drill-20260625T234502039802Z.json` reports `dry_run_ready`; execution is explicitly operator-gated. | Explicit rollback approval and matching rollback target. |
 | Service restart, binary restore, lease claim, production soak | Blocked by design | [Security](SECURITY.md) states these are not side effects of clone/build/test. | Explicit operator approval and fresh production readiness proof. |
 
 ## Current Recommendation
 
-Treat v0.1.2 as source-distribution complete and production-promotion blocked.
+Treat v0.1.2 as source-distribution complete and read-only
+`ready_for_explicit_approval` at score 90.
 The next highest-leverage work is outside this repo:
 
-1. Resolve the zero-touch score cap or preserve the honest blocked state.
+1. Preserve the above-90 boundary until cold-start/restart reproduction and a
+   substrate-emitted score above 90 are independently sealed.
 2. Keep Tailwright novelty promotion blocked unless operator policy deliberately
    waives the `HONEST_DARK` state.
 3. Re-run the read-only production readiness verifier with a fresh scoped grant
-   if the current grant has expired.
+   if the current grant expires before a specific approved production action.
 4. Only then decide whether to run an explicit promotion, rollback, restart, or
    production soak.
