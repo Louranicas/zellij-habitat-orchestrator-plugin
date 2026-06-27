@@ -1,7 +1,7 @@
 # Habitat Zellij Plugin — Local Session State
 
 > **Back to:** [CLAUDE.md](CLAUDE.md) · [workspace CLAUDE.md](../CLAUDE.md) · [README](README.md)
-> **Obsidian:** [[Habitat Zellij Plugin — Project Map]]
+> **Obsidian vault:** [dedicated vault MOC](obsidian-zellij-habitat-orchestrator-plugin/MOC.md) (in-repo dedicated vault, created S1008798)
 > **Hardening Plan:** [synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md)
 > **🟢 Wave-16 plugin-grid expansion 13→14 — S1005032, 2026-05-25 — LIVE.** `bridge_health.rs` SERVICES (line 38) + PROBE_PATHS (line 210) gained `(8142, "WFE")` + `(8142, "/health")` for the new workflow-trace `wf-daemon` habitat service. Plugin grid now renders `V3 Nerve TL SX V8 VMS POVM RM PV2 ORAC Inj WFE ME PSw` (14 services). `habitat-modules` test suite 91/91 passing post-edit; `cargo clippy -- -D warnings` clean. `habitat-plugin.wasm` rebuilt via `./build.sh` (1.2M); deployed to `~/.config/zellij/plugins/habitat-plugin.wasm` with "Hot-reloaded in active session"; verified WFE string baked into wasm + live screenshot showed `ALL UP 14/14 (14 probed)` with green `WFE` indicator. Port story: first attempt 8141 was wrong (HABITAT-CONDUCTOR's reserved port, down via `auto_start=false`); re-ported to 8142 (verified free across 4 surfaces). Project-side anchor: [`../the-workflow-engine/ai_docs/WAVE_16_WF_DAEMON_DESIGN_S1005032.md`](../the-workflow-engine/ai_docs/WAVE_16_WF_DAEMON_DESIGN_S1005032.md) + vault [[Wave-16 — wf-daemon Habitat Service Shape S1005032]]. stcortex `workflow_trace_completion_s1004115` mem **19192**; injection.db `causal_chain` id **135**.
 
@@ -35,7 +35,7 @@ Full report: [`ai_docs/P0_P1_AUDIT_2026-04-22.md`](ai_docs/P0_P1_AUDIT_2026-04-2
 ## Bidirectional Anchors
 
 - Hardening plan: [`synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md`](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md)
-- Obsidian project map: [[Habitat Zellij Plugin — Project Map]] (main vault)
+- Obsidian vault (dedicated, in-repo): [MOC](obsidian-zellij-habitat-orchestrator-plugin/MOC.md) — 12 notes, created S1008798
 - ULTRAPLATE Master Index: [[ULTRAPLATE Master Index]] (Tier 2 entry)
 - Workspace CLAUDE.md: [`~/claude-code-workspace/CLAUDE.md`](../CLAUDE.md) (Orchestrator layout section)
 - Synthex-v2 CLAUDE.local.md: [`synthex-v2/CLAUDE.local.md`](../synthex-v2/CLAUDE.local.md) (startup reminder)

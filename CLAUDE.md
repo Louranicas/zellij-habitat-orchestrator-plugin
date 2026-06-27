@@ -2,7 +2,7 @@
 
 > **Back to:** [workspace CLAUDE.md](../CLAUDE.md) · [CLAUDE.local.md](CLAUDE.local.md) · [README](README.md)
 >
-> **Obsidian:** [[Habitat Zellij Plugin — Project Map]]
+> **Obsidian vault:** [dedicated vault MOC](obsidian-zellij-habitat-orchestrator-plugin/MOC.md) (in-repo dedicated vault, created S1008798)
 > **Hardening Plan:** [synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md)
 
 ---

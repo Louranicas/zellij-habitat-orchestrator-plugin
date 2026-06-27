@@ -5,3 +5,7 @@
 *.log
 *.tmp
 
+# Obsidian workspace metadata (machine-local, not vault content)
+.obsidian/
+# Stale vault staging directory (content migrated to obsidian-zellij-habitat-orchestrator-plugin/)
+obsidian-zellij-habitat-orchestrator-plugin.vault/
