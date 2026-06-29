@@ -6,6 +6,9 @@ use orchestrator_kernel_sidecar::{
 use serde_json::json;
 use std::env;
 
+/// Commands for which `--read-only` (a non-mutating open) is valid.
+const READ_COMMANDS: [&str; 5] = ["snapshot", "snapshot-v2", "verify-chain", "replay", "events"];
+
 fn main() {
     if let Err(err) = run() {
         eprintln!("orch-kernelctl: {err}");
@@ -19,9 +22,31 @@ fn run() -> Result<()> {
         print_help();
         return Ok(());
     };
+    if matches!(command.as_str(), "help" | "--help" | "-h") {
+        print_help();
+        return Ok(());
+    }
+
+    // Pull `--read-only` out of the argument list before the per-command parsers
+    // see it. It opens the event log read-only (no WAL checkpoint / no writer
+    // contention) and is valid ONLY for non-mutating read commands.
+    let raw: Vec<String> = args.collect();
+    let read_only = raw.iter().any(|arg| arg == "--read-only");
+    let rest: Vec<String> = raw.into_iter().filter(|arg| arg != "--read-only").collect();
+
+    if read_only && !READ_COMMANDS.contains(&command.as_str()) {
+        return Err(KernelError::InvalidInput(format!(
+            "--read-only is only valid for read commands ({}), not {command:?}",
+            READ_COMMANDS.join(", ")
+        )));
+    }
 
     let paths = StatePaths::default_from_env()?;
-    let log = EventLog::open(&paths)?;
+    let log = if read_only {
+        EventLog::open_read_only(&paths)?
+    } else {
+        EventLog::open(&paths)?
+    };
 
     match command.as_str() {
         "init" => {
@@ -29,25 +54,21 @@ fn run() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&log.snapshot()?)?);
         }
         "append" => {
-            let remaining: Vec<String> = args.collect();
-            let request = parse_append_args(&remaining)?;
+            let request = parse_append_args(&rest)?;
             let row = log.append_event(&request)?;
             println!("{}", serde_json::to_string_pretty(&row)?);
         }
         "submit" => {
-            let remaining: Vec<String> = args.collect();
-            let request = parse_submit_args(&remaining)?;
+            let request = parse_submit_args(&rest)?;
             let response = log.submit(&request)?;
             println!("{}", serde_json::to_string_pretty(&response)?);
         }
         "snapshot" => {
-            let remaining: Vec<String> = args.collect();
-            ensure_json_flag(&remaining)?;
+            ensure_json_flag(&rest)?;
             println!("{}", serde_json::to_string_pretty(&log.snapshot()?)?);
         }
         "snapshot-v2" => {
-            let remaining: Vec<String> = args.collect();
-            ensure_json_flag(&remaining)?;
+            ensure_json_flag(&rest)?;
             println!("{}", serde_json::to_string_pretty(&log.snapshot_v2()?)?);
         }
         "verify-chain" => {
@@ -58,18 +79,15 @@ fn run() -> Result<()> {
             );
         }
         "replay" => {
-            let remaining: Vec<String> = args.collect();
-            let since = parse_since_arg(&remaining)?;
+            let since = parse_since_arg(&rest)?;
             let rows = log.replay_since(since)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
         "events" => {
-            let remaining: Vec<String> = args.collect();
-            let trace_id = parse_trace_arg(&remaining)?;
+            let trace_id = parse_trace_arg(&rest)?;
             let rows = log.events_for_trace(&trace_id)?;
             println!("{}", serde_json::to_string_pretty(&rows)?);
         }
-        "help" | "--help" | "-h" => print_help(),
         other => {
             return Err(KernelError::InvalidInput(format!(
                 "unknown command {other:?}; run orch-kernelctl help"
@@ -180,6 +198,6 @@ fn value_after(args: &[String], index: usize, flag: &str) -> Result<String> {
 
 fn print_help() {
     println!(
-        "orch-kernelctl commands:\n  init\n  submit --json REQUEST_JSON\n  append --kind KIND [--trace-id ID] [--parent-id ID] [--actor ACTOR] [--payload JSON]\n  snapshot [--json]\n  snapshot-v2 [--json]\n  verify-chain\n  replay [--since SEQ]\n  events --trace TRACE_ID"
+        "orch-kernelctl commands:\n  init\n  submit --json REQUEST_JSON\n  append --kind KIND [--trace-id ID] [--parent-id ID] [--actor ACTOR] [--payload JSON]\n  snapshot [--json] [--read-only]\n  snapshot-v2 [--json] [--read-only]\n  verify-chain [--read-only]\n  replay [--since SEQ] [--read-only]\n  events --trace TRACE_ID [--read-only]\n\n  --read-only  open the event log read-only (no WAL checkpoint, no writer contention); read commands only"
     );
 }

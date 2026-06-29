@@ -4,7 +4,7 @@
 //! assimilated plan: explicit state paths, `SQLite` WAL, canonical event hashing,
 //! replay, chain verification, and a constrained built-in recipe path.
 
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
@@ -523,6 +523,32 @@ impl EventLog {
         Ok(log)
     }
 
+    /// Open the event log **read-only** for projection / witness reads.
+    ///
+    /// Unlike [`EventLog::open`], this does NOT create directories, run
+    /// [`EventLog::initialize`] (no `WAL` pragma, DDL, or `INSERT`), or otherwise
+    /// mutate the database: the connection is `SQLITE_OPEN_READ_ONLY`. A witness
+    /// (e.g. the dashboard) can therefore read `snapshot`, `snapshot-v2`,
+    /// `verify-chain`, `replay`, and `events` without contending with — or
+    /// triggering a `WAL` checkpoint against — a live writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the database does not exist (a read-only open cannot
+    /// create it) or cannot be opened read-only.
+    pub fn open_read_only(paths: &StatePaths) -> Result<Self> {
+        let conn = Connection::open_with_flags(&paths.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        // busy_timeout is a per-connection runtime setting (it does not write to
+        // the database), so it is permitted on a read-only connection and avoids
+        // an immediate SQLITE_BUSY when a writer momentarily holds the lock.
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
+        Ok(Self {
+            conn,
+            db_path: paths.db_path.clone(),
+            state_dir: paths.state_dir.clone(),
+        })
+    }
+
     /// Initialize `WAL` mode and schema.
     ///
     /// # Errors
@@ -745,6 +771,14 @@ impl EventLog {
             (0.80, "pipe_terminality".to_string())
         };
 
+        // pipe.* is not measured from the durable log — enumerate it as stale.
+        let pipe_stale_fields = vec![
+            "pipe.mode".to_string(),
+            "pipe.circuit_state".to_string(),
+            "pipe.p99_ms".to_string(),
+            "pipe.timeouts".to_string(),
+        ];
+
         Ok(SnapshotV2 {
             schema: "habitat.kernel.snapshot.v2".to_string(),
             created_at: snapshot.generated_at,
@@ -768,9 +802,15 @@ impl EventLog {
                 p99_ms: None,
                 timeouts: 0,
             },
+            // The pipe.* block carries no measurement from the durable event log
+            // (the log has no pipe telemetry); the values above are fixed
+            // placeholders. Honesty contract: declare them stale rather than
+            // presenting them as measured. `measured_only` is true ONLY when every
+            // field is measured — i.e. when `stale_fields` is empty — so it flips to
+            // true automatically once the pipe block is actually measured upstream.
             dashboard_truth: SnapshotV2DashboardTruth {
-                measured_only: true,
-                stale_fields: Vec::new(),
+                measured_only: pipe_stale_fields.is_empty(),
+                stale_fields: pipe_stale_fields,
             },
         })
     }
@@ -1926,8 +1966,54 @@ mod tests {
         assert!(snapshot.sidecar.verify_chain_ok);
         assert!(snapshot.sidecar.last_event_id.is_some());
         assert!(snapshot.sidecar.last_event_hash.starts_with("sha256:"));
-        assert!(snapshot.dashboard_truth.measured_only);
+        // Honesty contract (N-3): pipe.* are unmeasured placeholders, so they are
+        // declared stale and `measured_only` is false (NOT a dishonest `true`).
+        assert!(!snapshot.dashboard_truth.measured_only);
+        assert!(snapshot
+            .dashboard_truth
+            .stale_fields
+            .iter()
+            .any(|f| f == "pipe.mode"));
+        assert_eq!(snapshot.dashboard_truth.stale_fields.len(), 4);
         assert_eq!(snapshot.pipe.mode, "A_FAIL_CLOSED");
+    }
+
+    #[test]
+    fn open_read_only_reads_but_cannot_write() {
+        let paths = temp_paths("ro_read");
+        // seed via a normal read-write open, then drop it (checkpoints the WAL)
+        {
+            let rw = EventLog::open(&paths).unwrap();
+            rw.append_event(&AppendEvent {
+                kind: "HEARTBEAT".into(),
+                trace_id: "t".into(),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"ok": true}),
+            })
+            .unwrap();
+        }
+        // a read-only open sees the committed data and can verify the chain...
+        let ro = EventLog::open_read_only(&paths).unwrap();
+        assert_eq!(ro.snapshot().unwrap().event_count, 1);
+        assert!(ro.snapshot().unwrap().verify_chain_ok);
+        // ...but cannot mutate the durable log.
+        let err = ro.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "t2".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        });
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn open_read_only_does_not_create_a_missing_db() {
+        let paths = temp_paths("ro_absent");
+        // open_read_only must NOT create the database (unlike open()).
+        assert!(EventLog::open_read_only(&paths).is_err());
+        assert!(!paths.db_path.exists());
     }
 
     #[test]

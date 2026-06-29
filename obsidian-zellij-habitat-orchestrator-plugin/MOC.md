@@ -14,6 +14,7 @@ source, these notes are the navigable, cross-linked mirror.
 
 ## Entry & Orientation
 
+- [[Executive Summary]] — what it is, what it can do, how it value-adds to the Zellij Habitat (one-page brief)
 - [[HOME]] — vault entry, quick-start reading paths, headline metrics
 - [[Release & Provenance]] — v0.1.2 identity, remotes, tag, wasm sha, publish checklist
 
@@ -45,6 +46,7 @@ source, these notes are the navigable, cross-linked mirror.
 - [[notes/D11 Witnesses — Source Deep Dive]] — `fiber_cockpit`, `campaign_attention`, `sphere_warden` wire types + boundary rules
 
 ### Operations & Deploy
+- [[notes/Benchmark-Dashboard Integration Wiring]] — wire the sidecar into the `:8088` web dashboard as a read-only panel + eval cases (DESIGN, source-grounded; canonical spec `Benchmark-Dashboard/docs/08_PLUGIN_INTEGRATION_WIRING.md`)
 - [[notes/Build Deploy Rollback Pipeline]] — `build.sh`, `orch-kernel-deploy.sh`, promote-persistent, rollback-persistent, decision tree
 - [[notes/Score & Fitness Framework]] — artifact scoring, gate0 cap, fitness report, zero-touch verifier (12 gates)
 - [[notes/Soak Testing & Monitoring]] — selftest, soak loop, monitor, deep-trace, live-pipe-proof
@@ -65,4 +67,4 @@ source, these notes are the navigable, cross-linked mirror.
 - `[[Factory Map — Zellij L0 & Witness Plugins (S1008584)]]` — factory-map framing of the witness pane
 - `[[CPU Saturation — fiber-cockpit Subprocess Storm (S1008517)]]` — canonical `ai_docs/CPU_SATURATION_RCA_S1008517.md`
 - `[[Zellij Habitat Memory-Exhaustion Crash — RCA (S1008630)]]` — canonical `ai_docs/ZELLIJ_0443_SERVER_PTY_DOUBLE_PANIC_RCA_S1008630.md`
-- `[[ULTRAPLATE Master Index]]` — Tier-2 entry (to be wired)
+- `[[ULTRAPLATE Master Index]]` — Tier-2 entry wired (S1008807)

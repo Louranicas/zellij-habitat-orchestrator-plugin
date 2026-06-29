@@ -39,6 +39,7 @@ warrant checks. See [[Security & Admission Boundary]].
 
 ## Quick-start reading paths
 
+- **"Give me the one-page brief"** → [[Executive Summary]]
 - **"What does it do?"** → [[Architecture Schematics]] → [[Dashboard Modules]]
 - **"How do I drive it?"** → [[Command Surface]]
 - **"Is it safe?"** → [[Security & Admission Boundary]] → [[Diagnostics]]
