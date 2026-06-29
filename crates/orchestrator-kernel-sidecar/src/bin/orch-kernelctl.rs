@@ -1,13 +1,11 @@
 //! Command-line control surface for the Orchestrator Kernel sidecar.
 
 use orchestrator_kernel_sidecar::{
-    parse_payload, AppendEvent, EventLog, KernelError, Result, StatePaths, SubmitRequest,
+    parse_payload, read_only_allowed, AppendEvent, EventLog, KernelError, Result, StatePaths,
+    SubmitRequest, READ_ONLY_COMMANDS,
 };
 use serde_json::json;
 use std::env;
-
-/// Commands for which `--read-only` (a non-mutating open) is valid.
-const READ_COMMANDS: [&str; 5] = ["snapshot", "snapshot-v2", "verify-chain", "replay", "events"];
 
 fn main() {
     if let Err(err) = run() {
@@ -34,10 +32,10 @@ fn run() -> Result<()> {
     let read_only = raw.iter().any(|arg| arg == "--read-only");
     let rest: Vec<String> = raw.into_iter().filter(|arg| arg != "--read-only").collect();
 
-    if read_only && !READ_COMMANDS.contains(&command.as_str()) {
+    if read_only && !read_only_allowed(&command) {
         return Err(KernelError::InvalidInput(format!(
             "--read-only is only valid for read commands ({}), not {command:?}",
-            READ_COMMANDS.join(", ")
+            READ_ONLY_COMMANDS.join(", ")
         )));
     }
 

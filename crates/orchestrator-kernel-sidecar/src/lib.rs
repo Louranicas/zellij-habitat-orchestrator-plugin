@@ -22,6 +22,20 @@ pub const SCHEMA_VERSION: i64 = 1;
 /// (`perceive.snapshot`) which the extended kind validator accepts.
 pub const PERCEIVE_SNAPSHOT_KIND: &str = "perceive.snapshot";
 
+/// CLI commands for which `--read-only` (a non-mutating event-log open) is valid.
+/// Mutating commands (`init`, `submit`, `append`) are fail-closed rejected.
+pub const READ_ONLY_COMMANDS: [&str; 5] =
+    ["snapshot", "snapshot-v2", "verify-chain", "replay", "events"];
+
+/// Returns `true` iff `command` may run under `--read-only`.
+///
+/// Anchored exact-match allowlist (never prefix/substring) — the fail-closed
+/// guard the CLI applies before opening the event log read-only.
+#[must_use]
+pub fn read_only_allowed(command: &str) -> bool {
+    READ_ONLY_COMMANDS.contains(&command)
+}
+
 const GENESIS_HASH: &str = "sha256:habitat.kernel.event_log.genesis.v1";
 const SUBMIT_REQUEST_SCHEMA: &str = "habitat.kernel.submit.request.v1";
 const SUBMIT_RESPONSE_SCHEMA: &str = "habitat.kernel.submit.response.v1";
@@ -2517,5 +2531,64 @@ mod tests {
         // open_read_only must NOT create the database (unlike open()).
         assert!(EventLog::open_read_only(&paths).is_err());
         assert!(!paths.db_path.exists());
+    }
+
+    // --- --read-only CLI guard (read_only_allowed) — the previously-untested guard ---
+
+    #[test]
+    fn read_only_allowed_accepts_every_read_command() {
+        for c in ["snapshot", "snapshot-v2", "verify-chain", "replay", "events"] {
+            assert!(read_only_allowed(c), "{c} must be read-only-allowed");
+        }
+    }
+
+    #[test]
+    fn read_only_allowed_rejects_write_and_unknown_commands() {
+        // fail-closed: mutating, unknown, empty, and near-miss prefixes all rejected.
+        for c in ["init", "submit", "append", "unknown", "", "snap", "snapshotX", "events "] {
+            assert!(!read_only_allowed(c), "{c:?} must NOT be read-only-allowed");
+        }
+    }
+
+    #[test]
+    fn read_only_commands_are_exactly_the_five_read_verbs() {
+        assert_eq!(READ_ONLY_COMMANDS.len(), 5);
+        for v in ["snapshot", "snapshot-v2", "verify-chain", "replay", "events"] {
+            assert!(READ_ONLY_COMMANDS.contains(&v));
+        }
+    }
+
+    #[test]
+    fn open_read_only_serves_all_read_paths() {
+        let paths = temp_paths("ro_reads");
+        {
+            let rw = EventLog::open(&paths).unwrap();
+            rw.append_event(&AppendEvent {
+                kind: "HEARTBEAT".into(),
+                trace_id: "tr".into(),
+                parent_id: None,
+                actor: "t".into(),
+                payload: json!({"n": 1}),
+            })
+            .unwrap();
+            rw.append_event(&AppendEvent {
+                kind: PERCEIVE_SNAPSHOT_KIND.into(),
+                trace_id: "tr".into(),
+                parent_id: None,
+                actor: "t".into(),
+                payload: json!({"panes": []}),
+            })
+            .unwrap();
+        }
+        // Every read path serves correctly from a read-only connection.
+        let ro = EventLog::open_read_only(&paths).unwrap();
+        assert!(ro.snapshot_v2().is_ok(), "snapshot_v2 must work read-only");
+        assert_eq!(ro.replay_since(0).unwrap().len(), 2);
+        assert_eq!(ro.events_for_trace("tr").unwrap().len(), 2);
+        assert!(ro
+            .latest_event_of_kind(PERCEIVE_SNAPSHOT_KIND)
+            .unwrap()
+            .is_some());
+        ro.verify_chain().unwrap();
     }
 }
