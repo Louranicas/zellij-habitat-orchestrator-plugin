@@ -1,0 +1,18 @@
+[package]
+name = "dcg-admit"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "L2/L3 delegated-write admission gate for the Ultimate Zellij Orchestrator (DCG Phase A, P2 consent-reuse + fencing): validates lease + monotonic fence (stale-fence rejection), enforces the arming key (read-never-write), routes actuation through the orchestrator-kernel warrant/submit organ (Err-as-denial), and appends Saga compensation events on partial failure."
+
+[lib]
+name = "dcg_admit"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dcg-admit"
+path = "src/main.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

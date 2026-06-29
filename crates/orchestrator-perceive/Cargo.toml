@@ -1,0 +1,18 @@
+[package]
+name = "orchestrator-perceive"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "L1 perception manifest assembler for the Ultimate Zellij Orchestrator: assembles panes/sessions/engines/catalog/leases/fibers into a perceive.snapshot.v1 and appends it to the orchestrator-kernel spine."
+
+[lib]
+name = "orchestrator_perceive"
+path = "src/lib.rs"
+
+[[bin]]
+name = "orchestrator-perceive"
+path = "src/main.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

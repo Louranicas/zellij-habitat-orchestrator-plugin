@@ -28,7 +28,7 @@ fn run() -> Result<()> {
     }
 
     // Pull `--read-only` out of the argument list before the per-command parsers
-    // see it. It opens the event log read-only (no WAL checkpoint / no writer
+    // see it.  It opens the event log read-only (no WAL checkpoint / no writer
     // contention) and is valid ONLY for non-mutating read commands.
     let raw: Vec<String> = args.collect();
     let read_only = raw.iter().any(|arg| arg == "--read-only");

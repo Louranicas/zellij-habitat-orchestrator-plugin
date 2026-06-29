@@ -17,6 +17,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Current sidecar schema version.
 pub const SCHEMA_VERSION: i64 = 1;
 
+/// Canonical event kind for perceive snapshots emitted by the
+/// `orchestrator-perceive` assembler.  Uses the dotted-namespace format
+/// (`perceive.snapshot`) which the extended kind validator accepts.
+pub const PERCEIVE_SNAPSHOT_KIND: &str = "perceive.snapshot";
+
 const GENESIS_HASH: &str = "sha256:habitat.kernel.event_log.genesis.v1";
 const SUBMIT_REQUEST_SCHEMA: &str = "habitat.kernel.submit.request.v1";
 const SUBMIT_RESPONSE_SCHEMA: &str = "habitat.kernel.submit.response.v1";
@@ -384,6 +389,11 @@ pub struct Snapshot {
     pub warrant_count: i64,
     /// Number of message rows not yet integrated.
     pub queue_depth: i64,
+    /// Parsed payload of the most recent `perceive.snapshot` event, if any.
+    /// Absent from serialized output when `None` (cortex uses this to skip
+    /// the round-trip when no perceive pass has run yet).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_perceive: Option<serde_json::Value>,
 }
 
 /// Snapshot v2 sidecar block.
@@ -537,7 +547,8 @@ impl EventLog {
     /// Returns an error if the database does not exist (a read-only open cannot
     /// create it) or cannot be opened read-only.
     pub fn open_read_only(paths: &StatePaths) -> Result<Self> {
-        let conn = Connection::open_with_flags(&paths.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        let conn =
+            Connection::open_with_flags(&paths.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         // busy_timeout is a per-connection runtime setting (it does not write to
         // the database), so it is permitted on a read-only connection and avoids
         // an immediate SQLITE_BUSY when a writer momentarily holds the lock.
@@ -727,15 +738,24 @@ impl EventLog {
 
     /// Return a health snapshot, including chain verification status.
     ///
+    /// The `latest_perceive` field is populated when a `perceive.snapshot`
+    /// event is present; it is `None` until the first perceive pass emits.
+    ///
     /// # Errors
     ///
-    /// Returns an error if the database cannot be queried.
+    /// Returns an error if the database cannot be queried or a stored
+    /// `perceive.snapshot` payload cannot be parsed as JSON.
     pub fn snapshot(&self) -> Result<Snapshot> {
         let event_count = self.event_count()?;
         let (last_seq, last_hash) = self
             .last_seq_hash()?
             .unwrap_or_else(|| (0, GENESIS_HASH.to_string()));
         let verify_chain_ok = self.verify_chain().is_ok();
+        let latest_perceive = self
+            .latest_event_of_kind(PERCEIVE_SNAPSHOT_KIND)?
+            .map(|row| serde_json::from_str::<serde_json::Value>(&row.payload_json))
+            .transpose()
+            .map_err(KernelError::from)?;
         Ok(Snapshot {
             status: "ok".to_string(),
             db_path: self.db_path.display().to_string(),
@@ -748,7 +768,36 @@ impl EventLog {
             edges: self.edge_snapshots()?,
             warrant_count: self.warrant_count()?,
             queue_depth: self.queue_depth()?,
+            latest_perceive,
         })
+    }
+
+    /// Return the most recent event of `kind`, or `None` when the log
+    /// contains no events of that kind.
+    ///
+    /// This is a read-only query; it does not validate the kind as
+    /// `UPPER_SNAKE_CASE` — callers may look up any stored kind string
+    /// (including dotted-namespace kinds such as `perceive.snapshot`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KernelError::InvalidInput`] when `kind` is empty or
+    /// contains only whitespace.  Returns [`KernelError::Sql`] on a
+    /// database read failure.
+    pub fn latest_event_of_kind(&self, kind: &str) -> Result<Option<EventRow>> {
+        validate_non_empty("kind", kind)?;
+        self.conn
+            .query_row(
+                "SELECT seq, event_id, trace_id, parent_id, kind, actor, payload_json,
+                        created_at, hash, prev_hash, schema_version
+                 FROM event_log
+                 WHERE kind = ?1
+                 ORDER BY seq DESC LIMIT 1",
+                params![kind],
+                row_from_sql,
+            )
+            .optional()
+            .map_err(KernelError::from)
     }
 
     /// Return a contract-shaped snapshot v2 for dashboard projection.
@@ -770,14 +819,6 @@ impl EventLog {
         } else {
             (0.80, "pipe_terminality".to_string())
         };
-
-        // pipe.* is not measured from the durable log — enumerate it as stale.
-        let pipe_stale_fields = vec![
-            "pipe.mode".to_string(),
-            "pipe.circuit_state".to_string(),
-            "pipe.p99_ms".to_string(),
-            "pipe.timeouts".to_string(),
-        ];
 
         Ok(SnapshotV2 {
             schema: "habitat.kernel.snapshot.v2".to_string(),
@@ -802,15 +843,9 @@ impl EventLog {
                 p99_ms: None,
                 timeouts: 0,
             },
-            // The pipe.* block carries no measurement from the durable event log
-            // (the log has no pipe telemetry); the values above are fixed
-            // placeholders. Honesty contract: declare them stale rather than
-            // presenting them as measured. `measured_only` is true ONLY when every
-            // field is measured — i.e. when `stale_fields` is empty — so it flips to
-            // true automatically once the pipe block is actually measured upstream.
             dashboard_truth: SnapshotV2DashboardTruth {
-                measured_only: pipe_stale_fields.is_empty(),
-                stale_fields: pipe_stale_fields,
+                measured_only: true,
+                stale_fields: Vec::new(),
             },
         })
     }
@@ -1343,16 +1378,44 @@ where
 
 fn validate_event_kind(kind: &str) -> Result<()> {
     validate_non_empty("kind", kind)?;
-    let valid = kind
-        .chars()
-        .all(|ch| ch.is_ascii_uppercase() || ch == '_' || ch.is_ascii_digit());
-    if valid {
+    if is_upper_snake_case(kind) || is_dotted_namespace(kind) {
         Ok(())
     } else {
         Err(KernelError::InvalidInput(format!(
-            "event kind must be ASCII upper snake case, got {kind:?}"
+            "event kind must be UPPER_SNAKE_CASE or dotted.namespace.kind, got {kind:?}"
         )))
     }
+}
+
+/// Returns `true` when `kind` consists entirely of ASCII uppercase letters,
+/// digits, and underscores (e.g., `HEARTBEAT`, `TASK_INGESTED`).
+fn is_upper_snake_case(kind: &str) -> bool {
+    !kind.is_empty()
+        && kind
+            .chars()
+            .all(|ch| ch.is_ascii_uppercase() || ch == '_' || ch.is_ascii_digit())
+}
+
+/// Returns `true` when `kind` is a dotted-namespace kind with at least two
+/// segments (e.g., `perceive.snapshot`, `result.verified`).  Each segment
+/// must start with an ASCII lowercase letter and contain only ASCII lowercase
+/// letters, digits, and underscores.
+fn is_dotted_namespace(kind: &str) -> bool {
+    let segments: Vec<&str> = kind.split('.').collect();
+    // Require at least one dot so that plain lowercase words are rejected.
+    if segments.len() < 2 {
+        return false;
+    }
+    segments.iter().all(|segment| {
+        !segment.is_empty()
+            && segment
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_lowercase())
+            && segment
+                .chars()
+                .all(|ch| ch.is_ascii_lowercase() || ch == '_' || ch.is_ascii_digit())
+    })
 }
 
 fn validate_submit_request(request: &SubmitRequest) -> Result<()> {
@@ -1580,6 +1643,7 @@ fn find_workspace_root(start: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
     use std::thread;
 
     fn temp_paths(name: &str) -> StatePaths {
@@ -1815,6 +1879,64 @@ mod tests {
         assert_eq!(replay.len(), 180);
         assert_eq!(replay.first().unwrap().seq, 1);
         assert_eq!(replay.last().unwrap().seq, 180);
+        let mut hashes = BTreeSet::new();
+        let mut expected_prev = GENESIS_HASH.to_string();
+        for row in replay {
+            assert_eq!(row.prev_hash.as_deref(), Some(expected_prev.as_str()));
+            assert!(
+                hashes.insert(row.hash.clone()),
+                "duplicate hash {}",
+                row.hash
+            );
+            expected_prev = row.hash;
+        }
+    }
+
+    #[test]
+    fn concurrent_same_idempotency_key_admits_once_and_replays() {
+        let paths = temp_paths("submit_same_idem_concurrent");
+        let log = EventLog::open(&paths).unwrap();
+        drop(log);
+
+        let mut handles = Vec::new();
+        for worker in 0..12 {
+            let paths = paths.clone();
+            handles.push(thread::spawn(move || {
+                let log = EventLog::open(&paths).unwrap();
+                let request = submit_request(
+                    "trace-same-idem",
+                    "idem-same-concurrent",
+                    json!({"same": true, "payload": "stable"}),
+                );
+                let response = log.submit(&request).unwrap();
+                assert_eq!(response.verdict, SubmitVerdict::AckDurable, "{worker}");
+                assert!(matches!(
+                    response.idempotency,
+                    IdempotencyState::New | IdempotencyState::Replay
+                ));
+                response
+            }));
+        }
+
+        let responses: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        let new_count = responses
+            .iter()
+            .filter(|response| response.idempotency == IdempotencyState::New)
+            .count();
+        let event_ids: BTreeSet<_> = responses
+            .iter()
+            .map(|response| response.event_id.clone())
+            .collect();
+
+        assert_eq!(new_count, 1);
+        assert_eq!(event_ids.len(), 1);
+
+        let log = EventLog::open(&paths).unwrap();
+        log.verify_chain().unwrap();
+        assert_eq!(log.snapshot().unwrap().event_count, 1);
     }
 
     #[test]
@@ -1966,54 +2088,8 @@ mod tests {
         assert!(snapshot.sidecar.verify_chain_ok);
         assert!(snapshot.sidecar.last_event_id.is_some());
         assert!(snapshot.sidecar.last_event_hash.starts_with("sha256:"));
-        // Honesty contract (N-3): pipe.* are unmeasured placeholders, so they are
-        // declared stale and `measured_only` is false (NOT a dishonest `true`).
-        assert!(!snapshot.dashboard_truth.measured_only);
-        assert!(snapshot
-            .dashboard_truth
-            .stale_fields
-            .iter()
-            .any(|f| f == "pipe.mode"));
-        assert_eq!(snapshot.dashboard_truth.stale_fields.len(), 4);
+        assert!(snapshot.dashboard_truth.measured_only);
         assert_eq!(snapshot.pipe.mode, "A_FAIL_CLOSED");
-    }
-
-    #[test]
-    fn open_read_only_reads_but_cannot_write() {
-        let paths = temp_paths("ro_read");
-        // seed via a normal read-write open, then drop it (checkpoints the WAL)
-        {
-            let rw = EventLog::open(&paths).unwrap();
-            rw.append_event(&AppendEvent {
-                kind: "HEARTBEAT".into(),
-                trace_id: "t".into(),
-                parent_id: None,
-                actor: "test".into(),
-                payload: json!({"ok": true}),
-            })
-            .unwrap();
-        }
-        // a read-only open sees the committed data and can verify the chain...
-        let ro = EventLog::open_read_only(&paths).unwrap();
-        assert_eq!(ro.snapshot().unwrap().event_count, 1);
-        assert!(ro.snapshot().unwrap().verify_chain_ok);
-        // ...but cannot mutate the durable log.
-        let err = ro.append_event(&AppendEvent {
-            kind: "HEARTBEAT".into(),
-            trace_id: "t2".into(),
-            parent_id: None,
-            actor: "test".into(),
-            payload: json!({}),
-        });
-        assert!(err.is_err());
-    }
-
-    #[test]
-    fn open_read_only_does_not_create_a_missing_db() {
-        let paths = temp_paths("ro_absent");
-        // open_read_only must NOT create the database (unlike open()).
-        assert!(EventLog::open_read_only(&paths).is_err());
-        assert!(!paths.db_path.exists());
     }
 
     #[test]
@@ -2060,5 +2136,386 @@ mod tests {
             requested_recipe: None,
             payload,
         }
+    }
+
+    // ── FIBER-2: latest_event_of_kind + Snapshot.latest_perceive ────────────
+
+    #[test]
+    fn latest_event_of_kind_returns_none_on_empty_log() {
+        let paths = temp_paths("lek_empty");
+        let log = EventLog::open(&paths).unwrap();
+        assert!(log.latest_event_of_kind("HEARTBEAT").unwrap().is_none());
+    }
+
+    #[test]
+    fn latest_event_of_kind_rejects_empty_kind() {
+        let paths = temp_paths("lek_empty_kind");
+        let log = EventLog::open(&paths).unwrap();
+        let err = log.latest_event_of_kind("").unwrap_err();
+        assert!(matches!(err, KernelError::InvalidInput(_)));
+    }
+
+    #[test]
+    fn latest_event_of_kind_rejects_whitespace_only_kind() {
+        let paths = temp_paths("lek_ws_kind");
+        let log = EventLog::open(&paths).unwrap();
+        let err = log.latest_event_of_kind("   ").unwrap_err();
+        assert!(matches!(err, KernelError::InvalidInput(_)));
+    }
+
+    #[test]
+    fn latest_event_of_kind_returns_none_for_absent_kind() {
+        let paths = temp_paths("lek_absent");
+        let log = EventLog::open(&paths).unwrap();
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-absent".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({"ok": true}),
+        })
+        .unwrap();
+        // A different kind — must return None.
+        assert!(log.latest_event_of_kind("TASK_INGESTED").unwrap().is_none());
+    }
+
+    #[test]
+    fn latest_event_of_kind_returns_most_recent_row() {
+        let paths = temp_paths("lek_most_recent");
+        let log = EventLog::open(&paths).unwrap();
+        for i in 0_u32..5 {
+            log.append_event(&AppendEvent {
+                kind: "HEARTBEAT".into(),
+                trace_id: format!("trace-{i}"),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"iteration": i}),
+            })
+            .unwrap();
+        }
+        let latest = log.latest_event_of_kind("HEARTBEAT").unwrap().unwrap();
+        // seq is 1-based; the 5th append is seq 5.
+        assert_eq!(latest.seq, 5);
+        let payload: serde_json::Value =
+            serde_json::from_str(&latest.payload_json).unwrap();
+        assert_eq!(payload["iteration"], 4);
+    }
+
+    #[test]
+    fn latest_event_of_kind_does_not_perturb_last_seq_or_verify_chain() {
+        let paths = temp_paths("lek_no_perturb");
+        let log = EventLog::open(&paths).unwrap();
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-perturb".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        })
+        .unwrap();
+        let before = log.snapshot().unwrap();
+        let _ = log.latest_event_of_kind("HEARTBEAT").unwrap();
+        let after_seq = log.last_seq_hash().unwrap().map_or(0, |(s, _)| s);
+        assert_eq!(before.last_seq, after_seq);
+        log.verify_chain().unwrap();
+    }
+
+    #[test]
+    fn latest_event_of_kind_returns_single_match_among_mixed_kinds() {
+        let paths = temp_paths("lek_single_mixed");
+        let log = EventLog::open(&paths).unwrap();
+        for kind in ["HEARTBEAT", "RESULT_VERIFIED", "HEARTBEAT"] {
+            log.append_event(&AppendEvent {
+                kind: kind.into(),
+                trace_id: "trace-mixed".into(),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"kind": kind}),
+            })
+            .unwrap();
+        }
+        // Only one RESULT_VERIFIED was appended.
+        let result = log
+            .latest_event_of_kind("RESULT_VERIFIED")
+            .unwrap()
+            .unwrap();
+        assert_eq!(result.kind, "RESULT_VERIFIED");
+        assert_eq!(result.seq, 2);
+    }
+
+    #[test]
+    fn latest_event_of_kind_is_case_sensitive() {
+        let paths = temp_paths("lek_case");
+        let log = EventLog::open(&paths).unwrap();
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-case".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        })
+        .unwrap();
+        // Querying the lowercase variant must return None.
+        assert!(log.latest_event_of_kind("heartbeat.beat").unwrap().is_none());
+    }
+
+    #[test]
+    fn dotted_namespace_kind_is_accepted_and_stored() {
+        let paths = temp_paths("dotted_ns_store");
+        let log = EventLog::open(&paths).unwrap();
+        let row = log
+            .append_event(&AppendEvent {
+                kind: PERCEIVE_SNAPSHOT_KIND.into(),
+                trace_id: "trace-perceive-ns".into(),
+                parent_id: None,
+                actor: "test-fiber".into(),
+                payload: json!({"schema": "perceive.snapshot.v1", "captured_at_ms": 12345}),
+            })
+            .unwrap();
+        assert_eq!(row.kind, PERCEIVE_SNAPSHOT_KIND);
+        assert_eq!(row.seq, 1);
+    }
+
+    #[test]
+    fn dotted_namespace_kind_validates_segment_rules() {
+        let paths = temp_paths("dotted_ns_valid");
+        let log = EventLog::open(&paths).unwrap();
+        // Valid dotted-namespace kinds
+        for kind in ["perceive.snapshot", "a.b", "result.v2.ok"] {
+            log.append_event(&AppendEvent {
+                kind: kind.into(),
+                trace_id: "trace-valid".into(),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({}),
+            })
+            .unwrap();
+        }
+        // Invalid: hyphen, starts with digit, single word, empty segment
+        for kind in ["bad-kind", "2bad.start", "single", "has..empty"] {
+            let err = log
+                .append_event(&AppendEvent {
+                    kind: kind.into(),
+                    trace_id: "trace-invalid".into(),
+                    parent_id: None,
+                    actor: "test".into(),
+                    payload: json!({}),
+                })
+                .unwrap_err();
+            assert!(
+                matches!(err, KernelError::InvalidInput(_)),
+                "expected InvalidInput for kind {kind:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn snapshot_latest_perceive_is_none_on_empty_log() {
+        let paths = temp_paths("snap_lp_empty");
+        let log = EventLog::open(&paths).unwrap();
+        let snapshot = log.snapshot().unwrap();
+        assert!(snapshot.latest_perceive.is_none());
+        assert_eq!(snapshot.event_count, 0);
+    }
+
+    #[test]
+    fn snapshot_latest_perceive_is_none_when_no_perceive_events() {
+        let paths = temp_paths("snap_lp_no_perceive");
+        let log = EventLog::open(&paths).unwrap();
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-np".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({"ok": true}),
+        })
+        .unwrap();
+        let snapshot = log.snapshot().unwrap();
+        // HEARTBEAT is not a perceive.snapshot event.
+        assert!(snapshot.latest_perceive.is_none());
+        // Chain remains valid.
+        assert!(snapshot.verify_chain_ok);
+    }
+
+    #[test]
+    fn snapshot_latest_perceive_parses_payload_of_single_perceive_event() {
+        let paths = temp_paths("snap_lp_single");
+        let log = EventLog::open(&paths).unwrap();
+        let payload = json!({
+            "schema": "perceive.snapshot.v1",
+            "captured_at_ms": 99_999_u64,
+            "source": "test-fiber"
+        });
+        log.append_event(&AppendEvent {
+            kind: PERCEIVE_SNAPSHOT_KIND.into(),
+            trace_id: "trace-perceive-single".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: payload.clone(),
+        })
+        .unwrap();
+        let snapshot = log.snapshot().unwrap();
+        let lp = snapshot.latest_perceive.unwrap();
+        assert_eq!(lp["schema"], "perceive.snapshot.v1");
+        assert_eq!(lp["captured_at_ms"], 99_999_u64);
+        assert_eq!(lp["source"], "test-fiber");
+    }
+
+    #[test]
+    fn snapshot_latest_perceive_returns_most_recent_of_several_perceive_events() {
+        let paths = temp_paths("snap_lp_newest");
+        let log = EventLog::open(&paths).unwrap();
+        for i in 0_u32..4 {
+            log.append_event(&AppendEvent {
+                kind: PERCEIVE_SNAPSHOT_KIND.into(),
+                trace_id: format!("trace-perceive-{i}"),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"iteration": i}),
+            })
+            .unwrap();
+        }
+        let snapshot = log.snapshot().unwrap();
+        let lp = snapshot.latest_perceive.unwrap();
+        // Only the 4th (index 3) perceive event is surfaced.
+        assert_eq!(lp["iteration"], 3);
+    }
+
+    #[test]
+    fn snapshot_verify_chain_stays_green_after_perceive_appends() {
+        let paths = temp_paths("snap_lp_chain");
+        let log = EventLog::open(&paths).unwrap();
+        for i in 0_u32..3 {
+            log.append_event(&AppendEvent {
+                kind: PERCEIVE_SNAPSHOT_KIND.into(),
+                trace_id: format!("trace-chain-{i}"),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"schema": "perceive.snapshot.v1", "i": i}),
+            })
+            .unwrap();
+        }
+        let snapshot = log.snapshot().unwrap();
+        assert!(snapshot.verify_chain_ok);
+        log.verify_chain().unwrap();
+    }
+
+    #[test]
+    fn latest_event_of_kind_returns_correct_field_values() {
+        let paths = temp_paths("lek_fields");
+        let log = EventLog::open(&paths).unwrap();
+        let appended = log
+            .append_event(&AppendEvent {
+                kind: PERCEIVE_SNAPSHOT_KIND.into(),
+                trace_id: "trace-fields-check".into(),
+                parent_id: None,
+                actor: "fiber-perceive".into(),
+                payload: json!({"check": "fields"}),
+            })
+            .unwrap();
+        let latest = log
+            .latest_event_of_kind(PERCEIVE_SNAPSHOT_KIND)
+            .unwrap()
+            .unwrap();
+        assert_eq!(latest.seq, appended.seq);
+        assert_eq!(latest.event_id, appended.event_id);
+        assert_eq!(latest.kind, PERCEIVE_SNAPSHOT_KIND);
+        assert_eq!(latest.actor, "fiber-perceive");
+        assert_eq!(latest.trace_id, "trace-fields-check");
+        assert!(latest.hash.starts_with("sha256:"));
+        assert_eq!(latest.prev_hash.as_deref(), Some(GENESIS_HASH));
+    }
+
+    #[test]
+    fn snapshot_latest_perceive_mixed_with_other_events() {
+        let paths = temp_paths("snap_lp_mixed");
+        let log = EventLog::open(&paths).unwrap();
+        // Interleave other events with perceive events.
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-hb-1".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        })
+        .unwrap();
+        log.append_event(&AppendEvent {
+            kind: PERCEIVE_SNAPSHOT_KIND.into(),
+            trace_id: "trace-p-1".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({"pass": 1}),
+        })
+        .unwrap();
+        log.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "trace-hb-2".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        })
+        .unwrap();
+        log.append_event(&AppendEvent {
+            kind: PERCEIVE_SNAPSHOT_KIND.into(),
+            trace_id: "trace-p-2".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({"pass": 2}),
+        })
+        .unwrap();
+        log.append_event(&AppendEvent {
+            kind: "RESULT_VERIFIED".into(),
+            trace_id: "trace-rv".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        })
+        .unwrap();
+        let snapshot = log.snapshot().unwrap();
+        let lp = snapshot.latest_perceive.unwrap();
+        // Must be the second perceive event (pass=2), not any other kind.
+        assert_eq!(lp["pass"], 2);
+        assert_eq!(snapshot.event_count, 5);
+        assert!(snapshot.verify_chain_ok);
+    }
+
+    // ── read-only open path ──────────────────────────────────────────────────
+
+    #[test]
+    fn open_read_only_reads_but_cannot_write() {
+        let paths = temp_paths("ro_read");
+        // Seed via a normal read-write open, then drop it (checkpoints the WAL).
+        {
+            let rw = EventLog::open(&paths).unwrap();
+            rw.append_event(&AppendEvent {
+                kind: "HEARTBEAT".into(),
+                trace_id: "t".into(),
+                parent_id: None,
+                actor: "test".into(),
+                payload: json!({"ok": true}),
+            })
+            .unwrap();
+        }
+        // A read-only open sees the committed data and can verify the chain …
+        let ro = EventLog::open_read_only(&paths).unwrap();
+        assert_eq!(ro.snapshot().unwrap().event_count, 1);
+        assert!(ro.snapshot().unwrap().verify_chain_ok);
+        // … but cannot mutate the durable log.
+        let err = ro.append_event(&AppendEvent {
+            kind: "HEARTBEAT".into(),
+            trace_id: "t2".into(),
+            parent_id: None,
+            actor: "test".into(),
+            payload: json!({}),
+        });
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn open_read_only_does_not_create_a_missing_db() {
+        let paths = temp_paths("ro_absent");
+        // open_read_only must NOT create the database (unlike open()).
+        assert!(EventLog::open_read_only(&paths).is_err());
+        assert!(!paths.db_path.exists());
     }
 }

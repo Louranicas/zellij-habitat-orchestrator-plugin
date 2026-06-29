@@ -71,6 +71,20 @@ pub fn schema_invalid_response(reason: &str) -> Value {
 }
 
 #[must_use]
+pub fn use_sidecar_submit_response(trace_id: &str) -> Value {
+    response(PipeResponse {
+        mode: PIPE_MODE_FAIL_CLOSED,
+        trace_id,
+        verdict: "NACK_USE_SIDECAR_SUBMIT",
+        reason: "PLUGIN_PIPE_FAIL_CLOSED_USE_ORCH_KERNELCTL_SUBMIT",
+        attempted: false,
+        event_id: None,
+        event_hash: None,
+        request_hash: None,
+    })
+}
+
+#[must_use]
 pub fn sidecar_invalid_response(trace_id: &str) -> Value {
     response(PipeResponse {
         mode: PIPE_MODE_SEALED_SYNC,
@@ -186,6 +200,20 @@ mod tests {
         assert_eq!(actual["reason"], "SCHEMA_INVALID: expected value");
         assert_eq!(actual["sidecar_submission"]["attempted"], false);
         assert_eq!(actual["sidecar_submission"]["event_id"], Value::Null);
+    }
+
+    #[test]
+    fn valid_payload_in_mode_a_returns_terminal_sidecar_instruction() {
+        let actual = use_sidecar_submit_response("trace-mode-a");
+
+        assert_eq!(actual["mode"], PIPE_MODE_FAIL_CLOSED);
+        assert_eq!(actual["trace_id"], "trace-mode-a");
+        assert_eq!(actual["verdict"], "NACK_USE_SIDECAR_SUBMIT");
+        assert_eq!(
+            actual["reason"],
+            "PLUGIN_PIPE_FAIL_CLOSED_USE_ORCH_KERNELCTL_SUBMIT"
+        );
+        assert_eq!(actual["sidecar_submission"]["attempted"], false);
     }
 
     #[test]

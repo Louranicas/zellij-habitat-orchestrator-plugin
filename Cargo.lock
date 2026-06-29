@@ -602,6 +602,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dcg-admit"
+version = "0.1.3"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "deltae"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -966,7 +974,7 @@ dependencies = [
 
 [[package]]
 name = "habitat-bridge-client"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "habitat-core",
  "serde",
@@ -975,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "habitat-core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -983,7 +991,7 @@ dependencies = [
 
 [[package]]
 name = "habitat-modules"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "habitat-bridge-client",
  "habitat-core",
@@ -993,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "habitat-plugin"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "habitat-bridge-client",
  "habitat-core",
@@ -1816,12 +1824,20 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "orchestrator-kernel-sidecar"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "orchestrator-perceive"
+version = "0.1.3"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

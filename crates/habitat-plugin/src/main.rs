@@ -12,20 +12,19 @@ use habitat_modules::fiber_cockpit::FiberCockpit;
 use habitat_modules::fleet_view::FleetView;
 use habitat_modules::na_panel::NaPanel;
 use habitat_modules::orchestrator_kernel::OrchestratorKernel;
+use habitat_modules::orchestrator_witness::OrchestratorWitness;
 use habitat_modules::session_timer::SessionTimer;
 use habitat_modules::sphere_warden::SphereWarden;
 use habitat_plugin::kernel_pipe::{
     response_from_sidecar, schema_invalid_response, sidecar_invalid_response,
-    sidecar_submit_failed_response,
+    sidecar_submit_failed_response, use_sidecar_submit_response,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use zellij_tile::prelude::*;
 
 const POLL_SECS: f64 = 5.0;
-const VERSION: &str = "0.1.2";
-const PIPE_TIMEOUT: &str = "/usr/bin/timeout";
-
+const VERSION: &str = "0.1.3";
 struct HabitatDashboard {
     modules: Vec<Box<dyn HabitatModule>>,
     bridge: BridgeClient,
@@ -65,6 +64,7 @@ impl HabitatDashboard {
                 "campaign_attention" => Some(Box::new(CampaignAttention::new())),
                 "sphere_warden" => Some(Box::new(SphereWarden::new())),
                 "orchestrator_kernel" => Some(Box::new(OrchestratorKernel::new())),
+                "orchestrator_witness" => Some(Box::new(OrchestratorWitness::new())),
                 _ => None,
             };
             if let Some(mut m) = module {
@@ -145,22 +145,9 @@ impl HabitatDashboard {
             return true;
         };
 
-        block_cli_pipe_input(pipe_id);
-        let context = BTreeMap::from([
-            ("kernel_pipe_id".to_string(), pipe_id.clone()),
-            ("kernel_trace_id".to_string(), trace_id),
-        ]);
-        run_command(
-            &[
-                PIPE_TIMEOUT,
-                "1s",
-                self.config.sidecar_cli.as_str(),
-                "submit",
-                "--json",
-                payload,
-            ],
-            context,
-        );
+        let response = use_sidecar_submit_response(&trace_id);
+        cli_pipe_output(pipe_id, &response.to_string());
+        unblock_cli_pipe_input(pipe_id);
         true
     }
 }
@@ -189,7 +176,7 @@ impl ZellijPlugin for HabitatDashboard {
                 .get("role")
                 .is_some_and(|role| role == "orchestrator_kernel")
             {
-                "orchestrator_kernel,bridge_health,coherence_gauge".into()
+                "orchestrator_kernel,bridge_health,coherence_gauge,orchestrator_witness".into()
             } else {
                 "fleet_view,bridge_health,fiber_cockpit,campaign_attention,sphere_warden".into()
             }

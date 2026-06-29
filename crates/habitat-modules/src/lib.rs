@@ -31,5 +31,6 @@ pub mod fiber_cockpit;
 pub mod fleet_view;
 pub mod na_panel;
 pub mod orchestrator_kernel;
+pub mod orchestrator_witness;
 pub mod session_timer;
 pub mod sphere_warden;
