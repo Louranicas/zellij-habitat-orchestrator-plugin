@@ -9,7 +9,7 @@ standalone `zellij-habitat-orchestrator-plugin` repository state.
 > wasm sha `c5b9cce6…` (from-zero reproduced 2026-06-30). Adds the perception organ
 > `orchestrator-perceive`, the Delegation-Capacity Governor `dcg-admit`, the
 > `orchestrator_witness` panel, and `orch-kernelctl --read-only`. **7 crates · 12 modules ·
-> 1134 host tests / 0 failed · `forbid(unsafe_code)` · pedantic-clean.** The verification
+> 1134 host tests / 0 failed · no `unsafe` code · pedantic-clean.** The verification
 > receipts below (dated 2026-06-26) are the **v0.1.2 seal** record, preserved as history;
 > the v0.1.3 seal is the Ultimate Orchestrator P0–P5 campaign (S1008937).
 

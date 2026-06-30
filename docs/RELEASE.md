@@ -18,7 +18,7 @@ Back to [README](../README.md) · [Docs index](INDEX.md)
 
 **v0.1.3 adds**: perception organ `orchestrator-perceive`, Delegation-Capacity Governor
 `dcg-admit`, read-only `orchestrator_witness` panel, `orch-kernelctl --read-only` superset.
-7 crates · 12 dashboard modules · 1134 host tests · `forbid(unsafe_code)` · pedantic-clean.
+7 crates · 12 dashboard modules · 1134 host tests · no `unsafe` code · pedantic-clean.
 
 ### v0.1.2 Identity (prior release)
 

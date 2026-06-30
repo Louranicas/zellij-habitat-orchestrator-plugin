@@ -28,7 +28,7 @@ warrant checks. See [[Security & Admission Boundary]].
 | Metric | Value |
 |---|---|
 | Crates | 7 (`habitat-core`, `habitat-modules`, `habitat-bridge-client`, `habitat-plugin`, `orchestrator-kernel-sidecar`, `orchestrator-perceive`, `dcg-admit`) |
-| Tests | 1134 host tests (all below the WASM line), `--all-targets` pedantic-clean, `forbid(unsafe_code)` |
+| Tests | 1134 host tests (all below the WASM line), `--all-targets` pedantic-clean, no `unsafe` code |
 | Dashboard modules | 12 (incl. `orchestrator_witness`) |
 | Zellij layouts | 4 (full-fleet, compact, minimal, factory-witness) |
 | New organs | `orchestrator-perceive` (perception), `dcg-admit` (delegation governor) |

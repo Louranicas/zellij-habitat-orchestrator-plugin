@@ -109,7 +109,7 @@ v0.1.2 dashboard + sidecar, and makes the sidecar a non-mutating-read superset.
 | **Sidecar superset** | `orch-kernelctl` gains `--read-only` (a genuinely non-mutating open for the 5 read commands) **and** P1 surfacing (`latest_event_of_kind`, `latest_perceive`, dotted-namespace event kinds). |
 | **Dashboard modules** | `fleet_view`, `bridge_health`, `coherence_gauge`, `event_feed`, `na_panel`, `session_timer`, `cmd_pipe`, `campaign_attention`, `fiber_cockpit`, `sphere_warden`, `orchestrator_kernel`, `orchestrator_witness`. |
 | **Zellij layouts** | Full-fleet, compact, minimal, and factory-witness layouts. |
-| **Test coverage** | **1134 host tests**, `--all-targets`, pedantic-clean, `forbid(unsafe_code)`. |
+| **Test coverage** | **1134 host tests**, `--all-targets`, pedantic-clean, **no `unsafe` code** (`#![forbid(unsafe_code)]` in the `orchestrator-perceive` + `dcg-admit` organ crates; zero `unsafe` in all 7). |
 | **Release tag** | `v0.1.3` on GitHub and GitLab. |
 
 ## Architecture & layer map

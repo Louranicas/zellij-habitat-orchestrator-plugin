@@ -8,7 +8,7 @@
 > **🟢 v0.1.3 SHIPPED + LIVE (S1008937 · doc-reconciled S1009130 / 2026-06-30).** Tag `v0.1.3`,
 > HEAD `834625f`, both remotes synced, wasm sha `c5b9cce6…` (from-zero reproduced). Live zellij
 > config repointed v0.1.2→v0.1.3 (`config.kdl` `Alt Shift h` keybind + `synth-orchestrator.kdl` ×2).
-> **7 crates · 12 dashboard modules · 1134 host tests / 0 failed · `forbid(unsafe_code)` · pedantic-clean.**
+> **7 crates · 12 dashboard modules · 1134 host tests / 0 failed · no `unsafe` code · pedantic-clean.**
 > v0.1.3 adds the perception organ `orchestrator-perceive`, the delegation-capacity governor
 > `dcg-admit`, the `orchestrator_witness` panel, and `orch-kernelctl --read-only`. The two-arc
 > hardening/participation plan below (v0.1.0→v0.1.2) is **historical** — that arc is complete.

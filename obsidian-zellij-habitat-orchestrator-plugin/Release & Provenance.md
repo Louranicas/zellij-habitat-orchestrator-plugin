@@ -21,7 +21,7 @@
 (`dcg-admit`: 4-guard admission + saga compensation + `width = min(semaphore,
 model-tier, budget, antichain)`), the read-only `orchestrator_witness` dashboard
 panel, and the `orch-kernelctl --read-only` non-mutating superset. 7 crates ·
-**1134 host tests** · `--all-targets` pedantic-clean · `forbid(unsafe_code)`.
+**1134 host tests** · `--all-targets` pedantic-clean · no `unsafe` code.
 
 ### v0.1.2 identity (prior release)
 
@@ -69,7 +69,7 @@ workflows — not implicit side effects of cloning or building.
 - Sidecar: `orch-kernelctl` (+ `--read-only`, `snapshot-v2`, `latest_perceive`),
   `orch-kerneld`, durable event log, replay, verify-chain, idempotency, policy hash
   checks ([[Orchestrator Kernel Sidecar — Durable Admission Engine]])
-- 1134 Rust host tests · `forbid(unsafe_code)` · pedantic-clean
+- 1134 Rust host tests · no `unsafe` code · pedantic-clean
 
 ## See also
 

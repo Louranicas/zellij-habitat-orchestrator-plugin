@@ -29,7 +29,7 @@ A host-side CLI backed by a SQLite WAL event log. When an operator wants a durab
 | **Fail-closed pipe protocol** | `zellij pipe` commands return `NACK_USE_SIDECAR_SUBMIT` for valid kernel requests — the plugin explicitly refuses to claim durability. Invalid schema → `NACK_SCHEMA_INVALID` without attempting submission |
 | **Hot-reload state persistence** | Modules serialise scroll position, selected campaign, last snapshot on `q`/`Esc` and restore on next `LaunchOrFocusPlugin` |
 | **4 ready-made layouts** | Fleet (50/50, 7 modules), Compact (30/70, 3 modules), Minimal (4-row footer, 1 module), Factory-Witness (bash-poll panels for factory-status/wiring/proof-seal) |
-| **1134 host tests (v0.1.3)** | 428 dcg-admit + 204 orchestrator-perceive + 362 modules + 74 core + 42 sidecar + 24 bridge-client / 0 failed; `forbid(unsafe_code)`, `--all-targets` pedantic-clean. (v0.1.2 sealed at 365 tests / score 90/90; zero-touch verifier 12 gates PASS) |
+| **1134 host tests (v0.1.3)** | 428 dcg-admit + 204 orchestrator-perceive + 362 modules + 74 core + 42 sidecar + 24 bridge-client / 0 failed; no `unsafe` code, `--all-targets` pedantic-clean. (v0.1.2 sealed at 365 tests / score 90/90; zero-touch verifier 12 gates PASS) |
 
 ---
 

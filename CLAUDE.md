@@ -9,7 +9,7 @@
 
 ## What this is
 
-WASM dashboard plugin for Zellij — renders live ULTRAPLATE habitat telemetry (ORAC, PV2, SYNTHEX, 16-service grid) in a terminal pane, backed by a durable hash-chained orchestrator-kernel sidecar and the v0.1.3 perception (`orchestrator-perceive`) + delegation-governance (`dcg-admit`) organs. **7 Rust crates · 12 dashboard modules · 1134 host tests** (`forbid(unsafe_code)`, pedantic-clean).
+WASM dashboard plugin for Zellij — renders live ULTRAPLATE habitat telemetry (ORAC, PV2, SYNTHEX, 16-service grid) in a terminal pane, backed by a durable hash-chained orchestrator-kernel sidecar and the v0.1.3 perception (`orchestrator-perceive`) + delegation-governance (`dcg-admit`) organs. **7 Rust crates · 12 dashboard modules · 1134 host tests** (no `unsafe` code, pedantic-clean).
 
 ## Architecture
 
@@ -134,7 +134,7 @@ cargo test --lib -p habitat-core -p habitat-modules -p habitat-bridge-client && 
   self-pollers (`bin/fiber-cockpit-snapshot` @5s, `bin/zj-sphere-warden` @30s). A layout may
   override `modules` to trim or to surface `orchestrator_kernel` / `orchestrator_witness`.
 - **1134 host tests** passing / 0 failed (428 dcg-admit + 204 orchestrator-perceive + 362 modules
-  + 74 core + 42 sidecar + 24 bridge-client), `--all-targets` pedantic-clean, `forbid(unsafe_code)`.
+  + 74 core + 42 sidecar + 24 bridge-client), `--all-targets` pedantic-clean, no `unsafe` code.
 - **Plan history:** the v0.1.0→v0.1.2 two-arc hardening plan is complete; v0.1.3 was built via
   the Ultimate Orchestrator P0–P5 campaign — see [hardening plan](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md) and [README §What ships in v0.1.3](README.md).
 
