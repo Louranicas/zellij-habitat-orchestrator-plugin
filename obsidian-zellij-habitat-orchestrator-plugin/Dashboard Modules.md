@@ -2,16 +2,16 @@
 
 > Back to: [[MOC]] · [[Architecture Schematics]] · source `crates/habitat-modules/src/`
 
-11 built-in dashboard modules, each with isolated state, event handling,
+12 built-in dashboard modules, each with isolated state, event handling,
 rendering, and tests. Default surface (S1007736):
 `fleet_view,bridge_health,fiber_cockpit,campaign_attention,sphere_warden`.
 
-## The 11 modules
+## The 12 modules
 
 | Module | Shows | Data sources | Keybinds |
 |---|---|---|---|
 | `fleet_view` | ORAC/PV2 health + field overview | ORAC `/health`, PV2 `/health` | — |
-| `bridge_health` | 14-service grid, thermal band, bridge/breaker status | ORAC `/bridges`, `/thermal`, 14× `/health` | — |
+| `bridge_health` | 16-service grid, thermal band, bridge/breaker status | ORAC `/bridges`, `/thermal`, 16× `/health` | — |
 | `coherence_gauge` | Field coherence, coupling, Hebbian context | PV2 `/field`, ORAC `/coupling`, `/hebbian` | `c` toggle detail |
 | `event_feed` | Emergence + bus-event stream w/ confidence/TTL cues | ORAC `/field`, PV2 `/bus/events` | `j`/`k` scroll, `g` top |
 | `na_panel` | Governance proposals + consent/attribution markers | ORAC `/health` | — |
@@ -20,12 +20,13 @@ rendering, and tests. Default surface (S1007736):
 | `campaign_attention` | Campaign lease/arming/new-state ambient alerts (Quiet→NEW digest) | shared `fiber_snapshot` `BridgeData` | `a` ack |
 | `fiber_cockpit` | Fiber/campaign navigation + lease visibility | self-poll `bin/fiber-cockpit-snapshot` @5s (tag `fiber_snapshot`) | `j`/`k` select, `l`/Enter expand, `h` back, `g` top |
 | `sphere_warden` | Live pane↔PV2-sphere coverage gap — **observe-only** | self-poll `bin/zj-sphere-warden` @30s | — |
-| `orchestrator_kernel` | Kernel snapshot/status rendering | sidecar snapshot | — |
+| `orchestrator_kernel` | Kernel snapshot/status rendering | self-poll `orch-kernelctl snapshot-v2` | `j`/`k` scroll |
+| `orchestrator_witness` | **(v0.1.3)** read-only governance panel: perceive / kernel / width / arming / route + STALE detection | self-poll `orch-kernelctl --read-only` | — |
 | *global* | — | — | `r` refresh, `q`/`Esc` close |
 
 ## The grid (`bridge_health`)
 
-Renders 14 services: `V3 Nerve TL SX V8 VMS POVM RM PV2 ORAC Inj WFE ME PSw`
+Renders 16 services: `V3 Nerve TL SX V8 VMS POVM RM PV2 ORAC Inj WFE Arch ME LCM PSw`
 (Wave-16 added `(8142, "WFE")` — S1005032). Live screenshot at deploy showed
 `ALL UP 14/14`.
 

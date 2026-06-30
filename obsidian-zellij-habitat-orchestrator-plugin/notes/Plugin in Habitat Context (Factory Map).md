@@ -78,10 +78,10 @@ supersedes it per the deployment assessment (G-2 closed by PLAN.md).
 
 ## Drift notes (S1008584 check vs older docs)
 
-- Tests: old docs said 163 — live at drift-check was **340** (now 365 at v0.1.2 seal).
-- WASM size: v0.1.0 backup = 1.2 MB; live deployed at drift-check = **1.3 MB**.
-- Module count: **10 total = 7 core + 3 D11 witnesses** (not "7 modules" as
-  some earlier notes stated).
+- Tests: old docs said 163 — live at drift-check was **340** (365 at v0.1.2 seal; **1134 at v0.1.3**).
+- WASM size: v0.1.0 backup = 1.2 MB; v0.1.2 ≈ 1.3 MB; **v0.1.3 ≈ 1.4 MB**.
+- Module count: **12 total (v0.1.3)** = 7 core + 3 D11 witnesses + `orchestrator_kernel` +
+  `orchestrator_witness` (was 10 at v0.1.2; not "7 modules" as some earliest notes stated).
 
 ## See also
 

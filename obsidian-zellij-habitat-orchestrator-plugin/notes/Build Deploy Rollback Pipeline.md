@@ -35,7 +35,7 @@ zellij plugin --skip-plugin-cache --in-place --close-replaced-pane \
   --configuration role=orchestrator_kernel \
   --configuration sidecar_cli=/home/louranicas/.local/bin/orch-kernelctl \
   --configuration kernel_poll=5 \
-  -- file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm
+  -- file:~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm
 ```
 
 ---
@@ -80,7 +80,7 @@ and a `promotion.json`.
 
 **Deployment artifacts promoted:**
 - `~/.config/zellij/plugins/habitat-plugin.wasm` (canonical name)
-- `~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm` (versioned)
+- `~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm` (current versioned; `…-v0.1.2.wasm` kept as rollback)
 - `~/.config/zellij/layouts/synth-orchestrator.kdl`
 - `~/.config/zellij/config.kdl`
 
@@ -150,5 +150,5 @@ All timed receipts land in `<workspace>/receipts/`:
 
 - [[Command Surface]] — `orch-kernelctl` CLI subcommands
 - [[Diagnostics]] — gate matrix + proof script reference
-- [[Release & Provenance]] — v0.1.2 identity and publish steps
+- [[Release & Provenance]] — v0.1.3 identity (v0.1.2 prior) and publish steps
 - [[notes/Score & Fitness Framework]] — scoring deployed artifacts

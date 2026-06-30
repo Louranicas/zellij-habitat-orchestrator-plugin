@@ -23,19 +23,18 @@ does not invent durability. `ACK_DURABLE` belongs to the sidecar submit path onl
 after event append, hash-chain update, idempotency resolution, and policy-bound
 warrant checks. See [[Security & Admission Boundary]].
 
-## Headline metrics (v0.1.2)
+## Headline metrics (v0.1.3)
 
 | Metric | Value |
 |---|---|
-| Crates | 5 (`habitat-core`, `habitat-modules`, `habitat-bridge-client`, `habitat-plugin`, `orchestrator-kernel-sidecar`) |
-| Rust LOC | ~10,780 |
-| Tests | 365 (all below the WASM line) |
-| Dashboard modules | 11 |
-| Zellij layouts | 4 |
-| Ops/proof scripts | 20 |
-| CLI subcommands (`orch-kernelctl`) | 8 |
+| Crates | 7 (`habitat-core`, `habitat-modules`, `habitat-bridge-client`, `habitat-plugin`, `orchestrator-kernel-sidecar`, `orchestrator-perceive`, `dcg-admit`) |
+| Tests | 1134 host tests (all below the WASM line), `--all-targets` pedantic-clean, `forbid(unsafe_code)` |
+| Dashboard modules | 12 (incl. `orchestrator_witness`) |
+| Zellij layouts | 4 (full-fleet, compact, minimal, factory-witness) |
+| New organs | `orchestrator-perceive` (perception), `dcg-admit` (delegation governor) |
+| CLI (`orch-kernelctl`) | read/write superset incl. `--read-only`, `snapshot-v2`, `latest_perceive` |
 | License | MIT OR Apache-2.0 |
-| Release | tag `v0.1.2`, commit `2a32442d…`, wasm sha `4dcd8c60…` |
+| Release | tag `v0.1.3`, HEAD `834625f…`, wasm sha `c5b9cce6…` (from-zero reproduced 2026-06-30) |
 
 ## Quick-start reading paths
 
@@ -50,6 +49,6 @@ warrant checks. See [[Security & Admission Boundary]].
 
 `habitat-plugin` depends on `zellij_tile`, which **only compiles to
 `wasm32-wasip1`** — so it cannot run host `cargo test`. All testable logic is
-pushed *down* into the three host crates, which must never import `zellij_tile`.
-The 365 tests live entirely below the WASM line; `build.sh` is the plugin crate's
-only "test."
+pushed *down* into the six host crates, which must never import `zellij_tile`.
+The 1134 host tests live entirely below the WASM line; `build.sh` is the plugin
+crate's only "test."

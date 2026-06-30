@@ -5,15 +5,17 @@
 A Rust workspace with a Zellij WASM plugin at the edge and a durable sidecar
 behind the admission boundary.
 
-## The 5 crates
+## The 7 crates
 
-| Crate | LOC | Role |
-|---|---|---|
-| `habitat-core` | ~1,650 | Shared contracts: the `HabitatModule` trait, event types, config parse + validation, render primitives, response structs. |
-| `habitat-modules` | ~4,400 | The 11 dashboard modules — isolated state, event handling, rendering, tests. |
-| `habitat-bridge-client` | ~656 | The only WASM-safe HTTP path: polls services via `run_command(curl …)`, fans out tagged `BridgeData` events. |
-| `habitat-plugin` | ~535 | WASM entrypoint (`wasm32-wasip1`). Wires modules + bridge, handles Timer/Key/Pipe, formats sidecar responses. |
-| `orchestrator-kernel-sidecar` | ~2,180 | The durable engine: event log, hash chain, idempotency, policy warrants, recipe execution. Ships `orch-kernelctl` + `orch-kerneld`. |
+| Crate | Role |
+|---|---|
+| `habitat-core` | Shared contracts: the `HabitatModule` trait, event types, config parse + validation, render primitives, response structs. |
+| `habitat-modules` | The 12 dashboard modules (incl. `orchestrator_kernel`, `orchestrator_witness`) — isolated state, event handling, rendering, tests. |
+| `habitat-bridge-client` | The only WASM-safe HTTP path: polls services via `run_command(curl …)`, fans out tagged `BridgeData` events. |
+| `habitat-plugin` | WASM entrypoint (`wasm32-wasip1`). Wires modules + bridge, handles Timer/Key/Pipe + `kernel_pipe`, formats sidecar responses. |
+| `orchestrator-kernel-sidecar` | The durable engine: event log, hash chain, idempotency, policy warrants, recipe execution. Ships `orch-kernelctl` (+ `--read-only`, `snapshot-v2`, `latest_perceive`) + `orch-kerneld`. |
+| `orchestrator-perceive` **(v0.1.3)** | L1 perception assembler → `perceive.snapshot` from panes, engines, kv-leases, hopf fibers, and the workflow/agent catalog. |
+| `dcg-admit` **(v0.1.3)** | L2/L3 consent + fence + Delegation-Capacity Governor: 4-guard admission, saga compensation, `width = min(semaphore, model-tier, budget, antichain)`. |
 
 ## Runtime planes
 

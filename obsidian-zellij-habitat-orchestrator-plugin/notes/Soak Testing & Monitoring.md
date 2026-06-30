@@ -114,7 +114,7 @@ attempting synchronous sidecar CLI execution inside the Zellij `CliPipe`
 window.
 
 **What it does:**
-1. Spawns a Zellij session with `habitat-plugin-v0.1.2.wasm` loaded
+1. Spawns a Zellij session with `habitat-plugin-v0.1.3.wasm` loaded
 2. Sends a valid `habitat.kernel.submit.request.v1` payload via `zellij pipe`
 3. Captures `cli_pipe_output` from Zellij log
 4. Verifies `verdict=NACK_USE_SIDECAR_SUBMIT, attempted=false`

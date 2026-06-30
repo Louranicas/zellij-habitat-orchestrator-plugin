@@ -2,13 +2,13 @@
 
 > Back to: [[CLAUDE.md]] · [[CLAUDE.local.md]] · in-repo [README](../README.md) · [docs/INDEX](../docs/INDEX.md)
 
-Dedicated vault for **`zellij-habitat-orchestrator-plugin` v0.1.2** — a Zellij WASM
-dashboard + durable orchestrator-kernel sidecar. This vault is the Obsidian
-companion to the in-repo `docs/` set; the repo `docs/` remain the canonical
-source, these notes are the navigable, cross-linked mirror.
+Dedicated vault for **`zellij-habitat-orchestrator-plugin` v0.1.3** — a Zellij WASM
+dashboard + durable orchestrator-kernel sidecar + perception/governance organs. This
+vault is the Obsidian companion to the in-repo `docs/` set; the repo `docs/` remain
+the canonical source, these notes are the navigable, cross-linked mirror.
 
-**Identity:** v0.1.2 · tag `v0.1.2` · commit `2a32442d…` · wasm sha `4dcd8c60…` ·
-5 crates · ~10,780 LOC · 365 tests · MIT OR Apache-2.0 · standalone-push only.
+**Identity:** v0.1.3 · tag `v0.1.3` · HEAD `834625f…` · wasm sha `c5b9cce6…` ·
+7 crates · 1134 host tests · MIT OR Apache-2.0 · standalone-push only.
 
 ---
 
@@ -16,13 +16,13 @@ source, these notes are the navigable, cross-linked mirror.
 
 - [[Executive Summary]] — what it is, what it can do, how it value-adds to the Zellij Habitat (one-page brief)
 - [[HOME]] — vault entry, quick-start reading paths, headline metrics
-- [[Release & Provenance]] — v0.1.2 identity, remotes, tag, wasm sha, publish checklist
+- [[Release & Provenance]] — v0.1.3 identity (v0.1.2 prior), remotes, tag, wasm sha, publish checklist
 
 ## Architecture
 
 - [[Architecture Schematics]] — 5-crate map, runtime planes, admission boundary (Mermaid)
 - [[Orchestrator Kernel Sidecar — Durable Admission Engine]] — event log, hash chain, idempotency, policy warrants, recipes
-- [[Dashboard Modules]] — the 11 modules, data sources, keybinds
+- [[Dashboard Modules]] — the 12 modules, data sources, keybinds
 - [[Command Surface]] — `orch-kernelctl` CLI, Zellij pipe protocol, scripts, layouts
 
 ## Security & Quality

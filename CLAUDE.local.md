@@ -5,16 +5,23 @@
 > **Hardening Plan:** [synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md)
 > **🟢 Wave-16 plugin-grid expansion 13→14 — S1005032, 2026-05-25 — LIVE.** `bridge_health.rs` SERVICES (line 38) + PROBE_PATHS (line 210) gained `(8142, "WFE")` + `(8142, "/health")` for the new workflow-trace `wf-daemon` habitat service. Plugin grid now renders `V3 Nerve TL SX V8 VMS POVM RM PV2 ORAC Inj WFE ME PSw` (14 services). `habitat-modules` test suite 91/91 passing post-edit; `cargo clippy -- -D warnings` clean. `habitat-plugin.wasm` rebuilt via `./build.sh` (1.2M); deployed to `~/.config/zellij/plugins/habitat-plugin.wasm` with "Hot-reloaded in active session"; verified WFE string baked into wasm + live screenshot showed `ALL UP 14/14 (14 probed)` with green `WFE` indicator. Port story: first attempt 8141 was wrong (HABITAT-CONDUCTOR's reserved port, down via `auto_start=false`); re-ported to 8142 (verified free across 4 surfaces). Project-side anchor: [`../the-workflow-engine/ai_docs/WAVE_16_WF_DAEMON_DESIGN_S1005032.md`](../the-workflow-engine/ai_docs/WAVE_16_WF_DAEMON_DESIGN_S1005032.md) + vault [[Wave-16 — wf-daemon Habitat Service Shape S1005032]]. stcortex `workflow_trace_completion_s1004115` mem **19192**; injection.db `causal_chain` id **135**.
 
-> **STARTUP REMINDER — Plugin Improvement Plan awaiting execution.**
-> Two arcs: Hardening (5 phases, ~12h) then Participation (NA-Z1→Z7, ~6h).
-> Start with P0: backup v0.1.0 + cmd_pipe security audit.
-> **Ask Luke if he wants to start the plugin hardening arc this session.**
+> **🟢 v0.1.3 SHIPPED + LIVE (S1008937 · doc-reconciled S1009130 / 2026-06-30).** Tag `v0.1.3`,
+> HEAD `834625f`, both remotes synced, wasm sha `c5b9cce6…` (from-zero reproduced). Live zellij
+> config repointed v0.1.2→v0.1.3 (`config.kdl` `Alt Shift h` keybind + `synth-orchestrator.kdl` ×2).
+> **7 crates · 12 dashboard modules · 1134 host tests / 0 failed · `forbid(unsafe_code)` · pedantic-clean.**
+> v0.1.3 adds the perception organ `orchestrator-perceive`, the delegation-capacity governor
+> `dcg-admit`, the `orchestrator_witness` panel, and `orch-kernelctl --read-only`. The two-arc
+> hardening/participation plan below (v0.1.0→v0.1.2) is **historical** — that arc is complete.
 
 ---
 
-> **Last saved:** 2026-04-24 (S110 — P2 complete, charter-gate-clean)
-> **Current state:** v0.1.0 deployed + backed up · 163 tests passing · 8 dead structs removed · 51 pedantic debts cleared · ConfigWarning validation live · Tier-1 + Tier-2 fixtures · all 4 charter gate stages green
-> **Next action:** S111 pivots to pane-vortex (WS-2a/2b/2c/2d) — see `shared-context/Comms Layer Unification Plan — 2026-04-24.md`
+> **Last saved:** 2026-06-30 (S1009130 — v0.1.3 documentation reconciliation, verified 1134 tests)
+> **Current state:** v0.1.3 deployed + live · 1134 host tests passing / 0 failed · 7 crates · 12 modules ·
+>   perception + delegation-governance organs + witness panel · `--all-targets` pedantic-clean
+> **Next action:** live hot-reload of the running FLEET pane in session `considerate-pheasant` (operator);
+>   optional commit+push of doc updates to standalone remotes.
+
+> _Below: the v0.1.0→v0.1.2 hardening/participation ledger — preserved as historical record._
 
 ## Plan Status
 

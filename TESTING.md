@@ -56,7 +56,7 @@ The harness submits through `orch-kernelctl submit`, verifies the hash chain, an
 
 ## Live Zellij Pipe Proof
 
-Use this after the WASM and sidecar CLI are installed. It opens a disposable Zellij session, loads `habitat-plugin-v0.1.2.wasm`, sends a valid `kernel` pipe and an invalid JSON pipe, captures both responses, then deletes the session.
+Use this after the WASM and sidecar CLI are installed. It opens a disposable Zellij session, loads `habitat-plugin-v0.1.3.wasm`, sends a valid `kernel` pipe and an invalid JSON pipe, captures both responses, then deletes the session.
 
 ```bash
 cd /home/louranicas/claude-code-workspace/habitat-zellij

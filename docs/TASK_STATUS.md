@@ -3,9 +3,15 @@
 Back to [README](../README.md) · [Docs index](INDEX.md)
 
 This ledger reconciles the historical [PLAN.md](../PLAN.md) task list with the
-current standalone `zellij-habitat-orchestrator-plugin` repository state. It is
-the release-local status source for v0.1.2 documentation, verification, and
-remaining gated work.
+standalone `zellij-habitat-orchestrator-plugin` repository state.
+
+> **Current release: v0.1.3** (S1008937) — tag `v0.1.3`, HEAD `834625f`, both remotes synced,
+> wasm sha `c5b9cce6…` (from-zero reproduced 2026-06-30). Adds the perception organ
+> `orchestrator-perceive`, the Delegation-Capacity Governor `dcg-admit`, the
+> `orchestrator_witness` panel, and `orch-kernelctl --read-only`. **7 crates · 12 modules ·
+> 1134 host tests / 0 failed · `forbid(unsafe_code)` · pedantic-clean.** The verification
+> receipts below (dated 2026-06-26) are the **v0.1.2 seal** record, preserved as history;
+> the v0.1.3 seal is the Ultimate Orchestrator P0–P5 campaign (S1008937).
 
 ## Status Legend
 
@@ -21,8 +27,8 @@ remaining gated work.
 | Plan item | Current status | Evidence | Remaining action |
 | --- | --- | --- | --- |
 | Task 1: establish `habitat-plugin` as successor to `habitat-nexus` | Complete | [PLAN.md](../PLAN.md) records the successor decision; this standalone repo now ships the named plugin and release docs. | None for this repo. |
-| Task 2: wire launcher keybind | Verified external | `~/.config/zellij/config.kdl` binds `Alt Shift h` to `file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm`; `Alt h` is already bound to `MoveFocusOrTab "left"`. | Do not overwrite `Alt h` without explicit operator approval; document `Alt Shift h` as the active launcher. |
-| Task 3: ship 50+ meaningful tests for `habitat-plugin` | Complete | `cargo test --workspace` passes 365 tests in the standalone repo. | None for `habitat-plugin`; sibling plugin test plans remain separate. |
+| Task 2: wire launcher keybind | Verified external | `~/.config/zellij/config.kdl` binds `Alt Shift h` to `file:~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm` (repointed from v0.1.2 on 2026-06-30); `Alt h` is already bound to `MoveFocusOrTab "left"`. | Do not overwrite `Alt h` without explicit operator approval; document `Alt Shift h` as the active launcher. |
+| Task 3: ship 50+ meaningful tests for `habitat-plugin` | Complete | `cargo test` passes 1134 host tests across the 6 host crates in the standalone repo. | None for `habitat-plugin`; sibling plugin test plans remain separate. |
 | Task 4: clarify plugin/ORAC ownership boundary | Complete | [Architecture](ARCHITECTURE.md) and [Security](SECURITY.md) separate Zellij rendering, bridge transport, sidecar durability, and operator-gated production actions. | None for this repo. |
 | Task 5: add shared snapshot/dispatch path | Partially complete | `habitat-bridge-client::SnapshotClient` exists with snapshot fan-out tests; `cmd_pipe` exposes `snapshot`, `query`, `coherence`, and `status`. | ORAC-side TTL/auth/version-header decisions remain upstream service work. |
 
@@ -33,7 +39,7 @@ remaining gated work.
 | Create separate standalone repository | Complete | Local repo: `/home/louranicas/claude-code-workspace/zellij-habitat-orchestrator-plugin`. |
 | Publish GitHub remote | Complete | <https://github.com/Louranicas/zellij-habitat-orchestrator-plugin> |
 | Publish GitLab remote | Complete | <https://gitlab.com/lukeomahoney/zellij-habitat-orchestrator-plugin> |
-| Tag v0.1.2 | Complete | Tag `v0.1.2` points to initial release commit `2a32442d51d20f262b58f993bd2c1cddd2acdcf1`. |
+| Tag v0.1.3 | Complete | Tag `v0.1.3` points to release commit `831182e` (S1008937); tag `v0.1.2` → `2a32442d…` retained as prior release. |
 | Add Deep-Diff-Forge-style documentation | Complete | [README](../README.md), [Architecture](ARCHITECTURE.md), [Operations](OPERATIONS.md), [Testing](TESTING.md), [Security](SECURITY.md), [Release](RELEASE.md). |
 | Preserve bidirectional docs links | Complete | Every file in `docs/` links back to [README](../README.md) and [Docs index](INDEX.md). |
 
@@ -44,7 +50,7 @@ remaining gated work.
 | Markdown link integrity | Complete | Repository-local link checker returned `MARKDOWN_LINKS_OK`. |
 | Rust formatting | Complete | `cargo fmt --all --check` passed. |
 | Rust compile | Complete | `cargo check --workspace` passed. |
-| Rust test suite | Complete | `cargo test --workspace` passed with 365 tests. |
+| Rust test suite | Complete | `cargo test` passed with 1134 host tests / 0 failed (v0.1.3; was 365 at the v0.1.2 seal). |
 | Deep-Diff-Forge documentation review | Complete | Initial docs review reported 7 changed files, 549 additions, 110 deletions, and `semantic_fallbacks=0`; current task-ledger patch review reports 4 changed files, 92 additions, 1 deletion, and `semantic_fallbacks=0`. |
 | Governance cap verifier | Complete | Workspace receipt `receipts/score-cap-verifier/orch-kernel-score-cap-verifier-20260626T051008Z.json` reports `verdict=pass`, `failed_checks=[]`, and authorizes the narrow gate-only cap lift from 82 to 90. |
 | Zero-touch verifier classification | Complete | Workspace receipt `receipts/orch-kernel-v012-zero-touch-verify-20260626T085030Z/summary.json` reports `PASS`; score framework is `score=90 cap=90`; sha256 `ca7cee840071412cac354ec1fc668299ef182009ecde6a13f55acdd7ae5994e6`. |
@@ -71,8 +77,9 @@ the boundary from source distribution into live production state.
 
 ## Current Recommendation
 
-Treat v0.1.2 as source-distribution complete and read-only
-`ready_for_explicit_approval` at score 90.
+Treat v0.1.3 as source-distribution complete and read-only
+`ready_for_explicit_approval` (v0.1.2 was sealed at score 90; v0.1.3 adds the
+perception/governance organs + witness panel on top, 1134 host tests).
 The next highest-leverage work is outside this repo:
 
 1. Preserve the above-90 boundary until cold-start/restart reproduction and a

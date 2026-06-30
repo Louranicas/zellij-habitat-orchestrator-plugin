@@ -100,8 +100,13 @@ here. The script wraps it in a dated envelope for receipt chaining.
 Produces a `habitat.kernel.identity.bundle.v1` JSON document: WASM sha,
 SQLite DB stats, Git ref, OS info.
 
-**Expected WASM name:** `habitat-plugin-v0.1.2.wasm` — the script checks for
-this exact name.
+**Expected WASM name:** `habitat-plugin-v0.1.2.wasm` — the v0.1.2-era scoring
+scripts (`orch-kernel-identity.sh` `WASM_EXPECTED_NAME`, `orch-kernel-score.sh`
+`target_wasm`, `orch-kernel-promote-persistent.sh`) still check for this exact
+name. ⚠️ These scripts are **pinned to v0.1.2** and were NOT used to deploy
+v0.1.3 — v0.1.3 was deployed by a direct config repoint (S1009130). Re-pointing
+these scripts to `habitat-plugin-v0.1.3.wasm` is a pending code change, tracked
+separately from this documentation pass.
 
 **Gate0 identity check:** the zero-touch verifier requires `gate0_identity_status=pass`
 before awarding score above 74.

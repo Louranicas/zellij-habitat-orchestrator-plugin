@@ -9,20 +9,23 @@
 
 ## What this is
 
-WASM dashboard plugin for Zellij — renders live ULTRAPLATE habitat telemetry (ORAC, PV2, SYNTHEX, 11 services) in a terminal pane. 4 Rust crates, 7 modules, 2,300 LOC.
+WASM dashboard plugin for Zellij — renders live ULTRAPLATE habitat telemetry (ORAC, PV2, SYNTHEX, 16-service grid) in a terminal pane, backed by a durable hash-chained orchestrator-kernel sidecar and the v0.1.3 perception (`orchestrator-perceive`) + delegation-governance (`dcg-admit`) organs. **7 Rust crates · 12 dashboard modules · 1134 host tests** (`forbid(unsafe_code)`, pedantic-clean).
 
 ## Architecture
 
 ```
-habitat-zellij/
+zellij-habitat-orchestrator-plugin/   # v0.1.3 — 7 crates
 ├── crates/
-│   ├── habitat-core/        # HabitatModule trait, events, render primitives, response structs
-│   ├── habitat-modules/      # 7 dashboard modules (fleet, health, coherence, events, cmd, na, timer)
-│   ├── habitat-bridge-client/# Polls services via run_command(curl), dispatches BridgeData events
-│   └── habitat-plugin/       # ZellijPlugin impl — wires modules + bridge, handles Timer/Key/Pipe
-├── layouts/                  # KDL layout file
-├── build.sh                  # Build + deploy to ~/.config/zellij/plugins/habitat-plugin.wasm
-└── CLAUDE.md                 # This file
+│   ├── habitat-core/                 # HabitatModule trait, events, render primitives, response structs
+│   ├── habitat-modules/              # 12 dashboard modules (incl. orchestrator_kernel, orchestrator_witness)
+│   ├── habitat-bridge-client/        # Polls services via run_command(curl), dispatches BridgeData events
+│   ├── habitat-plugin/               # ZellijPlugin impl (wasm32-wasip1) — wires modules + bridge + kernel_pipe
+│   ├── orchestrator-kernel-sidecar/  # durable admission, replay, verify-chain (+ --read-only superset)
+│   ├── orchestrator-perceive/        # L1 perception assembler → perceive.snapshot
+│   └── dcg-admit/                    # L2/L3 consent + fence + delegation-capacity governor + width
+├── layouts/                          # 4 KDL layouts (habitat-fleet, -compact, -minimal, factory-witness)
+├── build.sh                          # Build + deploy to ~/.config/zellij/plugins/habitat-plugin.wasm
+└── CLAUDE.md                         # This file
 ```
 
 ## Modules
@@ -39,8 +42,15 @@ habitat-zellij/
 | `fiber_cockpit` | `fiber_cockpit.rs` | `command_sources()` self-poll → `bin/fiber-cockpit-snapshot` (tag `fiber_snapshot`); pipe `fiber-data` fallback | `j`/`k` select, `l`/Enter expand, `h` back, `g` top |
 | `campaign_attention` | `campaign_attention.rs` | shared `fiber_snapshot` `BridgeData` (one feeder, two witnesses); pipe `fiber-data` fallback | `a` ack; pipes `attention-ack`/`-watch`/`-unwatch`/`-mine` |
 | `sphere_warden` | `sphere_warden.rs` | `command_sources()` self-poll → `bin/zj-sphere-warden` (tag `sphere_warden`, read-only) | — (observe-only sensor) |
+| `orchestrator_kernel` | `orchestrator_kernel.rs` | `command_sources()` self-poll → `orch-kernelctl snapshot-v2` (durable hash-chain witness) | `j`/`k` scroll |
+| `orchestrator_witness` | `orchestrator_witness.rs` | `command_sources()` self-poll → `orch-kernelctl --read-only` (perceive / kernel / width / arming / route, STALE detection) | — (read-only governance panel, v0.1.3) |
 
 Global: `r` = force refresh, `q`/`Esc` = close plugin
+
+> **12 dashboard modules (v0.1.3).** The 10 above plus `orchestrator_kernel` (durable
+> kernel witness) and `orchestrator_witness` (read-only governance panel rendering the
+> perception/governor/width/arming/route state). The latter two read the
+> orchestrator-kernel sidecar via `orch-kernelctl` (`--read-only` non-mutating open).
 
 > **Core trait `command_sources()` (D11, S1007594 — Luke-approved).** Additive default-`Vec::new()`
 > method on `HabitatModule` (`habitat-core/src/module.rs`) + `CommandSource` struct; the bridge
@@ -103,23 +113,30 @@ cargo test --lib -p habitat-core -p habitat-modules -p habitat-bridge-client && 
 - `habitat-plugin` depends on `zellij_tile` (wasm32-wasip1 only) — cannot run `cargo test` on it natively
 - Tests live in `habitat-core`, `habitat-modules`, `habitat-bridge-client` — these must NOT import `zellij_tile`
 - Bridge client polls via `run_command(curl ...)` — the only WASM-safe way to do HTTP
-- Plugin binary: `~/.config/zellij/plugins/habitat-plugin.wasm` (~1.2 MB)
+- Plugin binary: `~/.config/zellij/plugins/habitat-plugin.wasm` (~1.4 MB, v0.1.3)
 - Cargo target dir: `/tmp/habitat-zellij-target` (avoids workspace target pollution)
 
 ## Current Status
 
-- **v0.1.0** — working, deployed, rendering live data in Orchestrator tab (bottom-right, 25% pane)
-- **Default surface (S1007736, 2026-06-15):** `modules=` default is now
-  `fleet_view,bridge_health,fiber_cockpit,campaign_attention,sphere_warden` (was
-  `fleet_view,bridge_health`) — the main dashboard surfaces the **agentic-factory E2E
-  metrics by default** (hopf fibers/campaigns, ambient lease/arm alerts, live pane↔PV2
-  sphere coverage). The three D11 witnesses are read-only self-pollers (absolute-path
-  host helpers `bin/fiber-cockpit-snapshot` @5s, `bin/zj-sphere-warden` @30s). A layout
-  may still override `modules` to trim. wasm sha `22f33e67…`; plugin crate now
-  **clippy-clean** (cleared latent `useless_format` + `manual_is_multiple_of`).
-- **340 host tests** passing (24 core + 74 bridge-client + 242 modules), zero clippy warnings — hardening-plan P2 complete
-- **Known issues:** silent schema drift (all `#[serde(default)]`), polling overhead (~20 curl/cycle), 7 orphan floating instances, cmd_pipe security unaudited
-- **Plan:** two-arc hardening + participation, ~18h total — see [hardening plan](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md)
+- **v0.1.3** (S1008937) — sealed, tagged `v0.1.3`, pushed to both remotes (HEAD `834625f`),
+  wasm sha `c5b9cce6…` (from-zero reproduced 2026-06-30). Live config repointed; deployed
+  as `~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm` + `habitat-plugin.wasm`.
+- **What v0.1.3 adds** (on top of the v0.1.2 dashboard + sidecar): the perception organ
+  `orchestrator-perceive` (assembles `perceive.snapshot` from panes/engines/kv-leases/
+  hopf-fibers/workflow catalog), the Delegation-Capacity Governor `dcg-admit` (4-guard
+  admission → arming → fence lower-bound → fence upper-bound → warrant; saga compensation;
+  `width = min(semaphore, model-tier, budget, antichain)`), the read-only
+  `orchestrator_witness` dashboard panel, and the `orch-kernelctl --read-only` non-mutating superset.
+- **Default surface (S1007736):** `modules=` default is
+  `fleet_view,bridge_health,fiber_cockpit,campaign_attention,sphere_warden` — the main
+  dashboard surfaces the **agentic-factory E2E metrics by default** (hopf fibers/campaigns,
+  ambient lease/arm alerts, live pane↔PV2 sphere coverage). The D11 witnesses are read-only
+  self-pollers (`bin/fiber-cockpit-snapshot` @5s, `bin/zj-sphere-warden` @30s). A layout may
+  override `modules` to trim or to surface `orchestrator_kernel` / `orchestrator_witness`.
+- **1134 host tests** passing / 0 failed (428 dcg-admit + 204 orchestrator-perceive + 362 modules
+  + 74 core + 42 sidecar + 24 bridge-client), `--all-targets` pedantic-clean, `forbid(unsafe_code)`.
+- **Plan history:** the v0.1.0→v0.1.2 two-arc hardening plan is complete; v0.1.3 was built via
+  the Ultimate Orchestrator P0–P5 campaign — see [hardening plan](../synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md) and [README §What ships in v0.1.3](README.md).
 
 <!-- INSIGHTS-S1000146-WORKFLOW-ADDITIONS -->
 

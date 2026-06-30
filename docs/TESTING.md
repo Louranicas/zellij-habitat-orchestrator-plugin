@@ -2,7 +2,7 @@
 
 Back to [README](../README.md) · [Docs index](INDEX.md)
 
-The v0.1.2 standalone repository was verified with the following local gates.
+The v0.1.3 standalone repository was verified with the following local gates.
 
 ## Standard Gates
 
@@ -17,7 +17,9 @@ Expected release-local result:
 - `cargo fmt --all --check`: pass;
 - `cargo check --workspace`: pass;
 - `cargo test --workspace`: pass;
-- 365 Rust tests pass across core, bridge client, modules, plugin, and sidecar.
+- 1134 Rust host tests pass across core, bridge client, modules, sidecar, perceive, and dcg-admit
+  (428 dcg-admit + 204 orchestrator-perceive + 362 modules + 74 core + 42 sidecar + 24 bridge-client);
+  the `habitat-plugin` crate is wasm-only and is verified by `build.sh`, not host `cargo test`.
 
 ## Security And Supply Chain
 

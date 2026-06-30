@@ -2,7 +2,12 @@
 
 > Back to: [[MOC]] · in-repo [docs/TASK_STATUS](../docs/TASK_STATUS.md) · [PLAN.md](../PLAN.md)
 
-Two-arc plan: **Hardening** (5 phases) then **Participation** (NA-Z1→Z7).
+> **🟢 v0.1.3 SHIPPED (S1008937).** The v0.1.0→v0.1.2 two-arc plan below is **historical** —
+> that arc completed. v0.1.3 added the perception organ `orchestrator-perceive`, the
+> Delegation-Capacity Governor `dcg-admit`, the `orchestrator_witness` panel, and
+> `orch-kernelctl --read-only` (7 crates · 12 modules · 1134 host tests). See [[Release & Provenance]].
+
+Two-arc plan (v0.1.0→v0.1.2, historical): **Hardening** (5 phases) then **Participation** (NA-Z1→Z7).
 Hardening plan: `synthex-v2/ai_docs/HABITAT_ZELLIJ_PLUGIN_HARDENING_PLAN.md`.
 
 ## Hardening arc

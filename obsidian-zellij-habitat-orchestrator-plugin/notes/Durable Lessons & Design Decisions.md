@@ -100,9 +100,10 @@ level. Any expansion must go through an explicit audit (see
 
 `habitat-plugin` imports `zellij_tile` → only compiles to `wasm32-wasip1` →
 host `cargo test` cannot run it. This is a structural constraint, not a
-shortcut. The 365 tests live in `habitat-core`, `habitat-modules`,
-`habitat-bridge-client` — all of which must have **zero imports of
-`zellij_tile`**.
+shortcut. The 1134 host tests (v0.1.3) live in the six host crates —
+`habitat-core`, `habitat-modules`, `habitat-bridge-client`,
+`orchestrator-kernel-sidecar`, `orchestrator-perceive`, `dcg-admit` —
+all of which must have **zero imports of `zellij_tile`**.
 
 ---
 

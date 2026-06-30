@@ -7,7 +7,7 @@
 ```bash
 cargo fmt --all --check
 cargo check --workspace
-cargo test --workspace          # 365 tests
+cargo test --workspace --exclude habitat-plugin   # 1134 host tests (habitat-plugin is wasm-only)
 cargo audit                     # exits 0 (inherited warnings documented)
 cargo deny check                # exits 0
 ```

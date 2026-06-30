@@ -16,7 +16,7 @@ layout {
   tab name="Habitat" focus=true {
     pane split_direction="vertical" {
       pane size="50%" {
-        plugin location="file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm" {
+        plugin location="file:~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm" {
           modules "fleet_view,coherence_gauge,bridge_health,event_feed,na_panel,session_timer,cmd_pipe"
           orac_url   "http://127.0.0.1:8133"
           pv2_url    "http://127.0.0.1:8132"
@@ -137,7 +137,7 @@ Plugin always boots regardless of warnings.
 
 Configured in `~/.config/zellij/config.kdl` (external to repo):
 ```kdl
-bind "Alt Shift h" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/habitat-plugin-v0.1.2.wasm" floating=true; }
+bind "Alt Shift h" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/habitat-plugin-v0.1.3.wasm" floating=true; }
 ```
 
 This is the live keybind (Task 2 from PLAN.md). `Alt h` was already taken by

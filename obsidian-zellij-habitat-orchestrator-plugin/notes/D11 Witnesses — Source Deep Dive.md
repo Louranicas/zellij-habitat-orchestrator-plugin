@@ -176,7 +176,7 @@ S1008584 probe showed gap=11 (16 panes / 5 spheres).
 
 ## See also
 
-- [[Dashboard Modules]] — all 11 modules overview
+- [[Dashboard Modules]] — all 12 modules overview
 - [[notes/CPU Saturation RCA Summary]] — why 30s cadence is mandatory
 - [[notes/Event System & Module Trait]] — `CommandSource` definition
 - [[notes/Bridge Client & Polling Engine]] — stagger logic

@@ -117,5 +117,5 @@ overwrite the hand-patched binary.
 ## See also
 
 - [[Security & Admission Boundary]] — production guardrails and fail-closed rules
-- [[Release & Provenance]] — v0.1.2 publish checklist including cargo audit
+- [[Release & Provenance]] — v0.1.3 publish checklist (v0.1.2 prior) including cargo audit
 - [[notes/Durable Lessons & Design Decisions]] — D7 (never reinstall zellij)
